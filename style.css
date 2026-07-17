@@ -469,3 +469,172 @@ textarea.form-control {
         flex-direction: column;
     }
 }
+
+/* ─── 首次設定 Modal ────────────────────────────────────── */
+
+.setup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(47, 52, 55, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.setup-modal {
+    background: var(--color-surface);
+    border-radius: 16px;
+    padding: 40px 36px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.setup-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin-bottom: 4px;
+}
+
+.setup-subtitle {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-bottom: 28px;
+}
+
+.setup-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-progress);
+    color: var(--text-progress);
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.step-label {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin-bottom: 4px;
+}
+
+.step-hint {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.step-hint code {
+    background: var(--bg-pending);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: "Geist Mono", "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--text-progress);
+}
+
+.step-example {
+    background: var(--bg-pending);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: "Geist Mono", "SF Mono", Menlo, monospace;
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 10px;
+}
+
+.example-dim {
+    color: var(--color-text-muted);
+}
+
+.example-highlight {
+    color: var(--text-progress);
+    background: rgba(31, 108, 159, 0.12);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.setup-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--color-text-main);
+    background: var(--color-surface);
+    transition: border-color 0.15s;
+}
+
+.setup-input:focus {
+    outline: none;
+    border-color: var(--text-progress);
+    box-shadow: 0 0 0 3px rgba(31, 108, 159, 0.1);
+}
+
+.setup-input::placeholder {
+    color: #C4C4C0;
+}
+
+.setup-error {
+    background: var(--bg-closed);
+    color: var(--text-closed);
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.setup-save-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-confirmed);
+    color: var(--text-confirmed);
+    border: 1px solid var(--border-confirmed);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.setup-save-btn:hover {
+    background: #D2E4D0;
+}
+
+.setup-save-btn:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 480px) {
+    .setup-modal {
+        padding: 28px 20px;
+    }
+
+    .step-example {
+        font-size: 11px;
+    }
+}

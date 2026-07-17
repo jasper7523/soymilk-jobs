@@ -2,16 +2,10 @@
 
 let allJobs = [];
 let activeFilename = null;
-const SPREADSHEET_ID = "13nZIQxLd57U3AwLHBTAb6i1q7ixQyCvs-ptNHiaRAfk";
-const DEFAULT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbzmy9L28j0SnaECOBMzzLBB-THahSqEu7b4uF8zU2tU7rSt6OLNZ-effc5idR3BAGY6/exec";
-let localGasUrl = localStorage.getItem('gas_api_url');
-// 自動防呆：如果 localStorage 中存有舊版（不含最新 API 特徵）的網址，一律強制清空回退
-if (localGasUrl && !localGasUrl.includes("AKfycbzmy9L28j0SnaECOBMzzLBB-THahSqEu7b4uF8zU2tU7rSt6OLNZ-effc5idR3BAGY6")) {
-    localStorage.removeItem('gas_api_url');
-    localGasUrl = null;
-}
-// 確保 localStorage 中的值是合法的 http/https 連結，否則一律退回 DEFAULT_GAS_API_URL
-let gasApiUrl = (localGasUrl && localGasUrl.trim().startsWith('http')) ? localGasUrl.trim() : DEFAULT_GAS_API_URL;
+
+// 從 localStorage 讀取設定（不再硬編碼任何敏感資訊）
+let sheetId = localStorage.getItem('sheet_id') || "";
+let gasApiUrl = localStorage.getItem('gas_api_url') || "";
 
 // DOM Elements
 const syncBtn = document.getElementById('sync-btn');
@@ -35,12 +29,92 @@ const formNote = document.getElementById('form-note');
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     injectConfigButton();
-    fetchJobs();
+
+    // 首次使用偵測：若無 sheet_id 則彈出設定 Modal
+    if (!sheetId) {
+        showSetupModal();
+    } else {
+        fetchJobs();
+    }
+
     setupEventListeners();
     setupDragAndDrop();
 });
 
-// 動態在 Header 注入雲端設定按鈕
+// ─── 首次設定 Modal ───────────────────────────────────────
+
+function showSetupModal() {
+    if (document.getElementById('setup-overlay')) {
+        document.getElementById('setup-overlay').style.display = 'flex';
+        // 回填目前的值
+        document.getElementById('setup-sheet-id').value = sheetId;
+        document.getElementById('setup-gas-url').value = gasApiUrl;
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'setup-overlay';
+    overlay.className = 'setup-overlay';
+
+    overlay.innerHTML = `
+        <div class="setup-modal">
+            <h2 class="setup-title">歡迎使用接案看板</h2>
+            <p class="setup-subtitle">只需設定一次，之後都會自動連線</p>
+
+            <div class="setup-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <label class="step-label" for="setup-sheet-id">你的 Google 試算表 ID</label>
+                    <p class="step-hint">打開你的 Google 試算表，從網址列中複製 <code>d/</code> 和 <code>/edit</code> 之間的那串文字</p>
+                    <div class="step-example"><span class="example-dim">https://docs.google.com/spreadsheets/d/</span><span class="example-highlight">這串就是ID</span><span class="example-dim">/edit</span></div>
+                    <input type="text" id="setup-sheet-id" class="setup-input" placeholder="貼上 d/ 和 /edit 之間的那串文字" value="${sheetId}">
+                </div>
+            </div>
+
+            <div class="setup-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <label class="step-label" for="setup-gas-url">你的 Apps Script 網址</label>
+                    <p class="step-hint">在試算表「延伸功能 → Apps Script」部署後產生的網址</p>
+                    <input type="text" id="setup-gas-url" class="setup-input" placeholder="https://script.google.com/macros/s/.../exec" value="${gasApiUrl}">
+                </div>
+            </div>
+
+            <div id="setup-error" class="setup-error" style="display:none;"></div>
+            <button id="setup-save-btn" class="setup-save-btn">開始使用</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('setup-save-btn').addEventListener('click', () => {
+        const newSheetId = document.getElementById('setup-sheet-id').value.trim();
+        const newGasUrl = document.getElementById('setup-gas-url').value.trim();
+        const errorEl = document.getElementById('setup-error');
+
+        if (!newSheetId || newSheetId.length < 10 || newSheetId.includes(' ')) {
+            errorEl.textContent = '試算表 ID 格式不對，請確認是否正確複製';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (newGasUrl && !newGasUrl.startsWith('https://script.google.com/')) {
+            errorEl.textContent = 'Apps Script 網址應以 https://script.google.com/ 開頭';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        localStorage.setItem('sheet_id', newSheetId);
+        localStorage.setItem('gas_api_url', newGasUrl);
+        sheetId = newSheetId;
+        gasApiUrl = newGasUrl;
+
+        overlay.style.display = 'none';
+        fetchJobs();
+    });
+}
+
+// ─── Header 齒輪設定按鈕 ─────────────────────────────────
+
 function injectConfigButton() {
     const actionArea = document.querySelector('.action-area');
     if (actionArea) {
@@ -53,20 +127,12 @@ function injectConfigButton() {
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
-            <span>Google 雲端設定</span>
+            <span>設定</span>
         `;
         actionArea.insertBefore(configBtn, syncBtn);
 
         configBtn.addEventListener('click', () => {
-            const currentUrl = localStorage.getItem('gas_api_url') || "";
-            const newUrl = prompt("請輸入您的 Google Apps Script 網頁應用程式網址：\n(留空將切換回本地單機模式)", currentUrl);
-            if (newUrl !== null) {
-                const trimmedUrl = newUrl.trim();
-                localStorage.setItem('gas_api_url', trimmedUrl);
-                gasApiUrl = trimmedUrl;
-                alert(trimmedUrl ? "雲端同步已啟用！將自動讀寫 Google Sheets。" : "已切換回本地單機模式。");
-                fetchJobs();
-            }
+            showSetupModal();
         });
     }
 }
@@ -170,10 +236,10 @@ function setupEventListeners() {
 
 // 取得所有案子
 async function fetchJobs() {
-    // 優先：透過 Google Sheets Visualization API 讀取，無 302 重定向，完美支援 iOS Safari / Chrome
-    if (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) {
+    // 透過 Google Sheets Visualization API 直連讀取（無 302 重定向，iOS 全相容）
+    if (sheetId) {
         try {
-            const response = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&headers=1`);
+            const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&headers=1`);
             if (response.ok) {
                 const text = await response.text();
                 const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/);
@@ -196,40 +262,23 @@ async function fetchJobs() {
                         });
                     }
                     renderBoard(allJobs);
-                    return; // 成功獲取，結束函數
+                    return;
                 }
             }
         } catch (error) {
-            console.error('Error fetching via Visualization API, falling back to GAS:', error);
+            console.error('Error fetching via Visualization API:', error);
         }
     }
 
-    // 次之：退回到 POST GAS 讀取方式
-    if (gasApiUrl) {
-        try {
-            // 使用 POST 獲取資料，以規避 iOS Safari / Chrome 的 CORS GET 302 重定向阻擋問題 (ITP)
-            const response = await fetch(gasApiUrl, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'get_all' })
-            });
-            if (response.ok) {
-                allJobs = await response.json();
-                renderBoard(allJobs);
-            }
-        } catch (error) {
-            console.error('Error fetching cloud jobs:', error);
-            alert('無法連線到 Google 雲端資料庫，請檢查您的 Apps Script 網址是否正確。');
+    // Fallback：本地 API（僅限開發環境）
+    try {
+        const response = await fetch('/api/jobs');
+        if (response.ok) {
+            allJobs = await response.json();
+            renderBoard(allJobs);
         }
-    } else {
-        try {
-            const response = await fetch('/api/jobs');
-            if (response.ok) {
-                allJobs = await response.json();
-                renderBoard(allJobs);
-            }
-        } catch (error) {
-            console.error('Error fetching local jobs:', error);
-        }
+    } catch (error) {
+        console.error('Error fetching local jobs:', error);
     }
 }
 
