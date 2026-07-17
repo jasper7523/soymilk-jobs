@@ -2,6 +2,7 @@
 
 let allJobs = [];
 let activeFilename = null;
+const SPREADSHEET_ID = "13nZIQxLd57U3AwLHBTAb6i1q7ixQyCvs-ptNHiaRAfk";
 const DEFAULT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbzmy9L28j0SnaECOBMzzLBB-THahSqEu7b4uF8zU2tU7rSt6OLNZ-effc5idR3BAGY6/exec";
 let localGasUrl = localStorage.getItem('gas_api_url');
 // 自動防呆：如果 localStorage 中存有舊版（不含最新 API 特徵）的網址，一律強制清空回退
@@ -169,6 +170,41 @@ function setupEventListeners() {
 
 // 取得所有案子
 async function fetchJobs() {
+    // 優先：透過 Google Sheets Visualization API 讀取，無 302 重定向，完美支援 iOS Safari / Chrome
+    if (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) {
+        try {
+            const response = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`);
+            if (response.ok) {
+                const text = await response.text();
+                const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/);
+                if (match) {
+                    const json = JSON.parse(match[1]);
+                    const cols = json.table.cols.map(c => c.label || c.id).filter(Boolean);
+                    
+                    if (cols.length === 0) {
+                        allJobs = [];
+                    } else {
+                        allJobs = json.table.rows.map(row => {
+                            const item = {};
+                            row.c.forEach((cell, idx) => {
+                                const header = cols[idx];
+                                if (header) {
+                                    item[header] = cell ? (cell.v !== null ? cell.v : "") : "";
+                                }
+                            });
+                            return item;
+                        });
+                    }
+                    renderBoard(allJobs);
+                    return; // 成功獲取，結束函數
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching via Visualization API, falling back to GAS:', error);
+        }
+    }
+
+    // 次之：退回到 POST GAS 讀取方式
     if (gasApiUrl) {
         try {
             // 使用 POST 獲取資料，以規避 iOS Safari / Chrome 的 CORS GET 302 重定向阻擋問題 (ITP)
