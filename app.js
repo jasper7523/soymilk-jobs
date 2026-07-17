@@ -173,7 +173,7 @@ async function fetchJobs() {
     // 優先：透過 Google Sheets Visualization API 讀取，無 302 重定向，完美支援 iOS Safari / Chrome
     if (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) {
         try {
-            const response = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`);
+            const response = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&headers=1`);
             if (response.ok) {
                 const text = await response.text();
                 const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/);
