@@ -2,7 +2,8 @@
 
 let allJobs = [];
 let activeFilename = null;
-let gasApiUrl = localStorage.getItem('gas_api_url') || "";
+const DEFAULT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbzmy9L28j0SnaECOBMzzLBB-THahSqEu7b4uF8zU2tU7rSt6OLNZ-effc5idR3BAGY6/exec";
+let gasApiUrl = localStorage.getItem('gas_api_url') || DEFAULT_GAS_API_URL;
 
 // DOM Elements
 const syncBtn = document.getElementById('sync-btn');
