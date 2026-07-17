@@ -42,10 +42,10 @@
                 <div class="column-cards" id="cards-pending"></div>
             </div>
 
-            <!-- 聯絡中 Column -->
+            <!-- 待執行 Column -->
             <div class="board-column" data-status="in_progress">
                 <div class="column-header">
-                    <span class="status-badge badge-progress">聯絡中</span>
+                    <span class="status-badge badge-progress">待執行</span>
                     <span class="column-count" id="count-in_progress">0</span>
                 </div>
                 <div class="column-cards" id="cards-in_progress"></div>
@@ -110,7 +110,7 @@
                     <label for="form-status">處理狀態</label>
                     <select id="form-status" class="form-control">
                         <option value="pending">尚未回應 (Pending)</option>
-                        <option value="in_progress">聯絡中 (In Progress)</option>
+                        <option value="in_progress">待執行 (In Progress)</option>
                         <option value="confirmed">合作成功 (Confirmed)</option>
                         <option value="closed">婉拒/不合作 (Closed)</option>
                     </select>
@@ -133,7 +133,7 @@
 
                 <div class="form-group font-mono">
                     <label for="form-shoot-date">拍攝日期</label>
-                    <input type="date" id="form-shoot-date" class="form-control">
+                    <input type="datetime-local" id="form-shoot-date" class="form-control">
                 </div>
 
                 <div class="form-group">

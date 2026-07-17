@@ -233,7 +233,7 @@ function showAddJobModal() {
                         <label for="add-status">初始狀態</label>
                         <select id="add-status" class="setup-input">
                             <option value="pending">尚未回應</option>
-                            <option value="in_progress">聯絡中</option>
+                            <option value="in_progress">待執行</option>
                             <option value="confirmed">合作成功</option>
                         </select>
                     </div>
@@ -246,7 +246,7 @@ function showAddJobModal() {
                     </div>
                     <div class="form-group">
                         <label for="add-shoot-date">拍攝日期</label>
-                        <input type="date" id="add-shoot-date" class="setup-input font-mono">
+                        <input type="datetime-local" id="add-shoot-date" class="setup-input font-mono">
                     </div>
                 </div>
 
