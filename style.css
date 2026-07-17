@@ -1,0 +1,471 @@
+/* Minimalist-UI Design System for Soymilk Job Hub */
+
+:root {
+    /* 色彩系統 (Warm Monochrome + Spot Pastels) */
+    --color-bg: #F7F6F3;           /* 暖骨色 */
+    --color-surface: #FFFFFF;      /* 純白卡片 */
+    --color-border: #EAEAEA;       /* 淺灰邊框 */
+    
+    --color-text-main: #2F3437;    /* 炭黑色 */
+    --color-text-muted: #787774;   /* 灰色 */
+    
+    /* 狀態配色 (Muted Pastels) */
+    --bg-pending: #F1F1EF;
+    --text-pending: #37352F;
+    --border-pending: #EAEAEA;
+
+    --bg-progress: #E1F3FE;
+    --text-progress: #1F6C9F;
+    --border-progress: #C5E5FA;
+
+    --bg-confirmed: #EDF3EC;
+    --text-confirmed: #346538;
+    --border-confirmed: #D2E4D0;
+
+    --bg-closed: #FDEBEC;
+    --text-closed: #9F2F2D;
+    --border-closed: #F8D0D2;
+}
+
+/* 基礎重設 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Geist Sans", "Helvetica Neue", "Segoe UI", "Microsoft JhengHei", sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* 等寬字型與襯線字型 */
+.font-mono {
+    font-family: "Geist Mono", "SF Mono", "JetBrains Mono", Menlo, Courier, monospace;
+}
+
+.font-serif {
+    font-family: "Newsreader", "Playfair Display", "Instrument Serif", Georgia, serif;
+    letter-spacing: -0.01em;
+}
+
+/* 應用程式容器 */
+.app-container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 40px;
+    position: relative;
+    min-height: 100vh;
+}
+
+/* 頂部導航欄 */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+}
+
+.logo-area {
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #111111;
+}
+
+.logo-subtitle {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+
+/* 按鈕樣式 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background-color: #111111;
+    color: #FFFFFF;
+}
+
+.btn-primary:hover {
+    background-color: #333333;
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text-main);
+}
+
+.btn-secondary:hover {
+    background-color: #FAF9F6;
+    border-color: #CCCCCC;
+    transform: scale(0.98);
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.btn-close:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--color-text-main);
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* 看板排版 */
+.board-layout {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.board-column {
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.column-count {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-text-muted);
+    background: rgba(0,0,0,0.04);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.column-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 400px; /* 方便拖放釋放區 */
+}
+
+/* 狀態標籤 */
+.status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    border: 1px solid;
+}
+
+.badge-pending { background-color: var(--bg-pending); color: var(--text-pending); border-color: var(--border-pending); }
+.badge-progress { background-color: var(--bg-progress); color: var(--text-progress); border-color: var(--border-progress); }
+.badge-confirmed { background-color: var(--bg-confirmed); color: var(--text-confirmed); border-color: var(--border-confirmed); }
+.badge-closed { background-color: var(--bg-closed); color: var(--text-closed); border-color: var(--border-closed); }
+
+/* 卡片樣式 */
+.job-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    user-select: none;
+}
+
+.job-card:hover {
+    border-color: #CCCCCC;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    transform: translateY(-2px);
+}
+
+.job-card.dragging {
+    opacity: 0.4;
+    border: 1px dashed var(--color-text-muted);
+}
+
+.card-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background-color: rgba(0,0,0,0.04);
+    color: var(--color-text-muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-main);
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid rgba(0, 0, 0, 0.02);
+    padding-top: 10px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.meta-item svg {
+    flex-shrink: 0;
+}
+
+/* 側邊編輯欄 */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -450px;
+    width: 450px;
+    height: 100%;
+    background-color: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.03);
+    z-index: 100;
+    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sidebar-form {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.static-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111111;
+    line-height: 1.4;
+}
+
+.form-control {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--color-text-main);
+    background-color: #FAFAFA;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    background-color: var(--color-surface);
+    border-color: #888888;
+    outline: none;
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+.pdf-link-container {
+    margin-top: 4px;
+}
+
+.pdf-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #1a0dab;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+.pdf-link:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    text-decoration: underline;
+}
+
+.pdf-link svg {
+    color: #cc3333;
+}
+
+.sidebar-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+}
+
+.sidebar-actions .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 12px;
+}
+
+/* 浮動點綴 (視覺深度) */
+.ambient-glow {
+    position: fixed;
+    bottom: -150px;
+    left: -150px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(230, 227, 218, 0.2) 0%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* 行動端響應式優化 (iPhone 16 Pro Max 等) */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 16px;
+    }
+    
+    .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .logo-title {
+        font-size: 20px;
+    }
+    
+    .action-area {
+        width: 100%;
+    }
+    
+    #sync-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+    
+    /* 看板改為水平滑動 */
+    .board-layout {
+        display: flex;
+        overflow-x: auto;
+        gap: 16px;
+        padding-bottom: 16px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        align-items: stretch;
+    }
+    
+    .board-column {
+        flex: 0 0 calc(100vw - 48px);
+        min-height: 450px;
+        scroll-snap-align: start;
+    }
+    
+    /* 側邊欄改為手機滿版 */
+    .sidebar {
+        width: 100vw;
+        right: -100vw;
+    }
+    
+    .sidebar.open {
+        right: 0;
+    }
+    
+    .sidebar-form {
+        padding: 16px;
+    }
+    
+    .sidebar-actions {
+        flex-direction: column;
+    }
+}
