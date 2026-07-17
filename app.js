@@ -517,7 +517,12 @@ async function fetchJobs() {
                             row.c.forEach((cell, idx) => {
                                 const header = cols[idx];
                                 if (header) {
-                                    item[header] = cell ? (cell.v !== null ? cell.v : "") : "";
+                                    let val = cell ? (cell.v !== null ? cell.v : "") : "";
+                                    // Visualization API 日期格式轉換：Date(y,m,d,h,m,s) → 可讀字串
+                                    if (header === 'shoot_date' && typeof val === 'string' && val.startsWith('Date(')) {
+                                        val = formatShootDate(val);
+                                    }
+                                    item[header] = val;
                                 }
                             });
                             return item;
@@ -629,7 +634,7 @@ function createJobCard(job) {
                         <line x1="8" y1="2" x2="8" y2="6"></line>
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
-                    <span class="font-mono">${escapeHTML(job.shoot_date)}</span>
+                    <span class="font-mono">${escapeHTML(formatShootDate(job.shoot_date))}</span>
                 </div>
             `;
         }
@@ -679,7 +684,7 @@ function openSidebar(job) {
     formTag.value = job.tag || '';
     formCompensation.value = job.compensation || '';
     formContact.value = job.contact || '';
-    formShootDate.value = job.shoot_date || '';
+    formShootDate.value = toDatetimeLocalValue(job.shoot_date || '');
     formNote.value = job.note || '';
 
     sidebar.classList.add('open');
@@ -769,7 +774,68 @@ function setupDragAndDrop() {
     });
 }
 
-// 安全字串轉換
+// 日期格式化：將 Visualization API 的 Date(y,m,d,h,m,s) 或 ISO 字串轉為可讀格式
+function formatShootDate(val) {
+    if (!val) return '';
+    const str = String(val);
+    
+    // 處理 Google Visualization API 格式：Date(2026,6,22,14,0,0)  （月份 0-indexed）
+    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
+    if (gvizMatch) {
+        const y = gvizMatch[1];
+        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');  // +1 修正月份
+        const d = String(gvizMatch[3]).padStart(2, '0');
+        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : null;
+        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : null;
+        if (hh && mm && (hh !== '00' || mm !== '00')) {
+            return `${y}/${m}/${d} ${hh}:${mm}`;
+        }
+        return `${y}/${m}/${d}`;
+    }
+    
+    // 處理 datetime-local 格式：2026-07-22T14:00
+    if (str.includes('T')) {
+        const [date, time] = str.split('T');
+        const [y, m, d] = date.split('-');
+        return time ? `${y}/${m}/${d} ${time}` : `${y}/${m}/${d}`;
+    }
+    
+    return str;
+}
+
+// 反向轉換：各種格式 → datetime-local input 的 YYYY-MM-DDTHH:mm
+function toDatetimeLocalValue(val) {
+    if (!val) return '';
+    const str = String(val);
+    
+    // Date(2026,6,22,14,0,0) → 2026-07-22T14:00
+    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
+    if (gvizMatch) {
+        const y = gvizMatch[1];
+        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');
+        const d = String(gvizMatch[3]).padStart(2, '0');
+        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : '00';
+        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : '00';
+        return `${y}-${m}-${d}T${hh}:${mm}`;
+    }
+    
+    // 2026/07/22 14:00 → 2026-07-22T14:00
+    const slashMatch = str.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+    if (slashMatch) {
+        return `${slashMatch[1]}-${slashMatch[2]}-${slashMatch[3]}T${slashMatch[4]}:${slashMatch[5]}`;
+    }
+    
+    // 2026/07/22 → 2026-07-22T00:00
+    const dateOnlyMatch = str.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+    if (dateOnlyMatch) {
+        return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}T00:00`;
+    }
+    
+    // 已經是 YYYY-MM-DDTHH:mm 格式
+    if (str.includes('T')) return str;
+    
+    return str;
+}
 function escapeHTML(str) {
     if (!str) return '';
     return str
