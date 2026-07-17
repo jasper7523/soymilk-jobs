@@ -171,7 +171,11 @@ function setupEventListeners() {
 async function fetchJobs() {
     if (gasApiUrl) {
         try {
-            const response = await fetch(gasApiUrl);
+            // 使用 POST 獲取資料，以規避 iOS Safari / Chrome 的 CORS GET 302 重定向阻擋問題 (ITP)
+            const response = await fetch(gasApiUrl, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'get_all' })
+            });
             if (response.ok) {
                 allJobs = await response.json();
                 renderBoard(allJobs);
