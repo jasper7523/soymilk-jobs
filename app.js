@@ -4,6 +4,11 @@ let allJobs = [];
 let activeFilename = null;
 const DEFAULT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbzmy9L28j0SnaECOBMzzLBB-THahSqEu7b4uF8zU2tU7rSt6OLNZ-effc5idR3BAGY6/exec";
 let localGasUrl = localStorage.getItem('gas_api_url');
+// 自動防呆：如果 localStorage 中存有舊版（不含最新 API 特徵）的網址，一律強制清空回退
+if (localGasUrl && !localGasUrl.includes("AKfycbzmy9L28j0SnaECOBMzzLBB-THahSqEu7b4uF8zU2tU7rSt6OLNZ-effc5idR3BAGY6")) {
+    localStorage.removeItem('gas_api_url');
+    localGasUrl = null;
+}
 // 確保 localStorage 中的值是合法的 http/https 連結，否則一律退回 DEFAULT_GAS_API_URL
 let gasApiUrl = (localGasUrl && localGasUrl.trim().startsWith('http')) ? localGasUrl.trim() : DEFAULT_GAS_API_URL;
 
