@@ -75,7 +75,37 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   
-  // 2. 更新單一案子細節 (由手機前端編輯時呼叫)
+  // 2. 新增單一案子 (由網頁 / 手機前端手動新增時呼叫)
+  if (action === 'add_one') {
+    var newJob = postData.job;
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    
+    // 若試算表是空的，先寫入標頭列
+    if (data.length === 0 || headers.length === 0 || headers[0] === '') {
+      headers = ["filename", "title", "tag", "status", "note", "compensation", "contact", "platform", "shoot_date", "created_at", "pdf_url"];
+      sheet.appendRow(headers);
+    }
+    
+    // 自動生成 filename（WEB_YYYYMMDD_HHMMSS.manual）
+    var now = new Date();
+    var ts = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+    var autoFilename = "WEB_" + ts + ".manual";
+    newJob.filename = newJob.filename || autoFilename;
+    newJob.created_at = newJob.created_at || Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    newJob.status = newJob.status || 'pending';
+    
+    var row = [];
+    for (var j = 0; j < headers.length; j++) {
+      row.push(newJob[headers[j]] || "");
+    }
+    sheet.appendRow(row);
+    
+    return ContentService.createTextOutput(JSON.stringify({success: true, filename: newJob.filename}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // 3. 更新單一案子細節 (由手機前端編輯時呼叫)
   if (action === 'update_one') {
     var updatedJob = postData.job;
     var data = sheet.getDataRange().getValues();

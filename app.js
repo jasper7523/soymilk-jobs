@@ -7,6 +7,41 @@ let activeFilename = null;
 let sheetId = localStorage.getItem('sheet_id') || "";
 let gasApiUrl = localStorage.getItem('gas_api_url') || "";
 
+// ─── 一鍵設定連結解析 ────────────────────────────────────
+// 網址格式：https://xxx.github.io/jobs-dashboard/#s=試算表ID&g=GAS部署ID
+// GAS 部署 ID = 完整網址中 /s/ 和 /exec 之間的那段
+// 用法：你（開發者）組好連結私訊給豆漿，她打開即自動設定
+function applySetupLink() {
+    const hash = window.location.hash;
+    if (!hash.includes('s=')) return false;
+
+    try {
+        const params = new URLSearchParams(hash.slice(1));
+        const s = params.get('s');
+        const g = params.get('g');
+
+        if (s) {
+            localStorage.setItem('sheet_id', s);
+            sheetId = s;
+        }
+        if (g) {
+            // 從部署 ID 重組完整 GAS URL
+            const fullGasUrl = g.startsWith('https://')
+                ? g
+                : `https://script.google.com/macros/s/${g}/exec`;
+            localStorage.setItem('gas_api_url', fullGasUrl);
+            gasApiUrl = fullGasUrl;
+        }
+
+        // 清除 hash，避免書籤或分享時外洩
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        return true;
+    } catch (e) {
+        console.error('Setup link parse error:', e);
+        return false;
+    }
+}
+
 // DOM Elements
 const syncBtn = document.getElementById('sync-btn');
 const sidebar = document.getElementById('detail-sidebar');
@@ -28,18 +63,38 @@ const formNote = document.getElementById('form-note');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
+    // 優先偵測一鍵設定連結（hash fragment）
+    const autoConfigured = applySetupLink();
+
     injectConfigButton();
 
     // 首次使用偵測：若無 sheet_id 則彈出設定 Modal
     if (!sheetId) {
         showSetupModal();
     } else {
+        if (autoConfigured) {
+            // 一鍵設定成功，顯示簡短提示
+            showToast('設定完成！正在載入你的接案資料...');
+        }
         fetchJobs();
     }
 
     setupEventListeners();
     setupDragAndDrop();
 });
+
+// 簡易 Toast 提示
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
 
 // ─── 首次設定 Modal ───────────────────────────────────────
 
@@ -75,7 +130,7 @@ function showSetupModal() {
                 <div class="step-number">2</div>
                 <div class="step-content">
                     <label class="step-label" for="setup-gas-url">你的 Apps Script 網址</label>
-                    <p class="step-hint">在試算表「延伸功能 → Apps Script」部署後產生的網址</p>
+                    <p class="step-hint">在試算表「延伸功能 → Apps Script」部署後產生的網址（可留空，請管理員傳設定連結給你）</p>
                     <input type="text" id="setup-gas-url" class="setup-input" placeholder="https://script.google.com/macros/s/.../exec" value="${gasApiUrl}">
                 </div>
             </div>
@@ -137,8 +192,215 @@ function injectConfigButton() {
     }
 }
 
+// ─── 新增案件 Modal ──────────────────────────────────────
+
+function showAddJobModal() {
+    // 防重複建立
+    if (document.getElementById('add-job-overlay')) {
+        document.getElementById('add-job-overlay').style.display = 'flex';
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'add-job-overlay';
+    overlay.className = 'setup-overlay';
+
+    overlay.innerHTML = `
+        <div class="setup-modal add-job-modal">
+            <div class="add-modal-header">
+                <h2 class="setup-title">新增案件</h2>
+                <button id="add-job-close" class="btn-close" type="button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <p class="setup-subtitle">直接在看板上建立新的接案卡片</p>
+
+            <form id="add-job-form" class="add-job-form">
+                <div class="form-group">
+                    <label for="add-title">案件名稱 <span class="required-mark">*</span></label>
+                    <input type="text" id="add-title" class="setup-input" placeholder="例如：XX 品牌 KOC 探店合作" required>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="add-tag">類型標籤</label>
+                        <input type="text" id="add-tag" class="setup-input" placeholder="KOC、探店、展覽...">
+                    </div>
+                    <div class="form-group">
+                        <label for="add-status">初始狀態</label>
+                        <select id="add-status" class="setup-input">
+                            <option value="pending">尚未回應</option>
+                            <option value="in_progress">聯絡中</option>
+                            <option value="confirmed">合作成功</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="add-compensation">稿酬 / 條件</label>
+                        <input type="text" id="add-compensation" class="setup-input font-mono" placeholder="$5,000 + 互惠">
+                    </div>
+                    <div class="form-group">
+                        <label for="add-shoot-date">拍攝日期</label>
+                        <input type="date" id="add-shoot-date" class="setup-input font-mono">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="add-contact">聯絡窗口</label>
+                    <input type="text" id="add-contact" class="setup-input" placeholder="張小姐 / LINE: @brand123">
+                </div>
+
+                <div class="form-group">
+                    <label for="add-platform">合作平台</label>
+                    <input type="text" id="add-platform" class="setup-input" placeholder="IG Reels、小紅書、YouTube...">
+                </div>
+
+                <div class="form-group">
+                    <label for="add-note">備忘錄</label>
+                    <textarea id="add-note" class="setup-input" rows="3" placeholder="其他備註或對接細節..."></textarea>
+                </div>
+
+                <div id="add-job-error" class="setup-error" style="display:none;"></div>
+
+                <div class="add-job-actions">
+                    <button type="button" id="add-job-cancel" class="btn btn-secondary">取消</button>
+                    <button type="submit" id="add-job-submit" class="btn btn-primary">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>新增</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // 關閉按鈕
+    const closeModal = () => { overlay.style.display = 'none'; };
+    document.getElementById('add-job-close').addEventListener('click', closeModal);
+    document.getElementById('add-job-cancel').addEventListener('click', closeModal);
+
+    // 點擊背景關閉
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+    });
+
+    // 提交表單
+    document.getElementById('add-job-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('add-job-error');
+        const submitBtn = document.getElementById('add-job-submit');
+
+        const title = document.getElementById('add-title').value.trim();
+        if (!title) {
+            errorEl.textContent = '案件名稱不能空白';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        // 組裝資料
+        const newJob = {
+            title: title,
+            tag: document.getElementById('add-tag').value.trim(),
+            status: document.getElementById('add-status').value,
+            compensation: document.getElementById('add-compensation').value.trim(),
+            shoot_date: document.getElementById('add-shoot-date').value,
+            contact: document.getElementById('add-contact').value.trim(),
+            platform: document.getElementById('add-platform').value.trim(),
+            note: document.getElementById('add-note').value.trim()
+        };
+
+        errorEl.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.querySelector('span').textContent = '新增中...';
+
+        if (gasApiUrl) {
+            try {
+                await fetch(gasApiUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        action: 'add_one',
+                        job: newJob
+                    })
+                });
+
+                // no-cors 拿不到 response body，手動生成 filename
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                newJob.filename = `WEB_${ts}.manual`;
+                newJob.created_at = now.toISOString().slice(0, 19).replace('T', ' ');
+                newJob.pdf_url = '';
+
+                allJobs.push(newJob);
+                renderBoard(allJobs);
+                closeModal();
+
+                // 清空表單
+                document.getElementById('add-job-form').reset();
+            } catch (error) {
+                console.error('Add job error:', error);
+                errorEl.textContent = '新增失敗，請檢查網路連線';
+                errorEl.style.display = 'block';
+            }
+        } else {
+            // 本地模式：呼叫 server API
+            try {
+                const response = await fetch('/api/jobs/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newJob)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    newJob.filename = result.filename || `WEB_${Date.now()}.manual`;
+                    newJob.created_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                    newJob.pdf_url = '';
+
+                    allJobs.push(newJob);
+                    renderBoard(allJobs);
+                    closeModal();
+                    document.getElementById('add-job-form').reset();
+                } else {
+                    errorEl.textContent = '新增失敗';
+                    errorEl.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Add job error:', error);
+                errorEl.textContent = '網路錯誤，無法新增';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.querySelector('span').textContent = '新增';
+    });
+}
+
 // 設置基本事件監聽
 function setupEventListeners() {
+    // 新增案件按鈕
+    const addJobBtn = document.getElementById('add-job-btn');
+    if (addJobBtn) {
+        addJobBtn.addEventListener('click', () => {
+            if (!gasApiUrl && !sheetId) {
+                alert('請先完成設定（點右上角齒輪）再新增案件。');
+                return;
+            }
+            showAddJobModal();
+        });
+    }
+
     // 同步按鈕
     syncBtn.addEventListener('click', async () => {
         if (gasApiUrl) {

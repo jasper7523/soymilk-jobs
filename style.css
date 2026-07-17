@@ -638,3 +638,137 @@ textarea.form-control {
         font-size: 11px;
     }
 }
+
+/* ─── 新增案件 Modal ─────────────────────────────────────── */
+
+.add-job-modal {
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.add-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.add-job-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.add-job-form .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.required-mark {
+    color: var(--text-closed);
+    font-weight: 700;
+}
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.add-job-form select.setup-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23787774' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+    cursor: pointer;
+}
+
+.add-job-form textarea.setup-input {
+    resize: vertical;
+    min-height: 72px;
+    font-family: inherit;
+}
+
+.add-job-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+.add-job-actions .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 12px;
+}
+
+/* 手機端新增按鈕特別樣式 */
+@media (max-width: 768px) {
+    .action-area {
+        display: flex;
+        gap: 8px;
+    }
+
+    #add-job-btn {
+        flex: 1;
+    }
+
+    #sync-btn {
+        flex: 0 0 auto;
+        width: auto !important;
+    }
+
+    .add-job-modal {
+        max-width: 100%;
+        border-radius: 12px 12px 0 0;
+        max-height: 85vh;
+    }
+
+    .form-row-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .add-job-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .add-job-modal {
+        padding: 24px 16px;
+    }
+}
+
+/* ─── Toast 提示 ─────────────────────────────────────────── */
+
+.toast-msg {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--color-text-main);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 24px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 10000;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.toast-msg.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
