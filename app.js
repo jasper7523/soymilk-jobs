@@ -306,7 +306,10 @@ function showAddJobModal() {
             return;
         }
 
-        // 組裝資料
+        // 組裝資料（created_at 自動帶入當前時間）
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const createdAt = `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
         const newJob = {
             title: title,
             tag: document.getElementById('add-tag').value.trim(),
@@ -315,7 +318,8 @@ function showAddJobModal() {
             shoot_date: document.getElementById('add-shoot-date').value,
             contact: document.getElementById('add-contact').value.trim(),
             platform: document.getElementById('add-platform').value.trim(),
-            note: document.getElementById('add-note').value.trim()
+            note: document.getElementById('add-note').value.trim(),
+            created_at: createdAt
         };
 
         errorEl.style.display = 'none';
@@ -334,11 +338,8 @@ function showAddJobModal() {
                 });
 
                 // no-cors 拿不到 response body，手動生成 filename
-                const now = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
                 const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
                 newJob.filename = `WEB_${ts}.manual`;
-                newJob.created_at = now.toISOString().slice(0, 19).replace('T', ' ');
                 newJob.pdf_url = '';
 
                 allJobs.push(newJob);
@@ -582,16 +583,23 @@ function renderBoard(jobs) {
             columns[job.status].items.push(job);
         }
     });
-    // 待執行 & 尚未回應：按拍攝日期排序（最近的在上面，無日期排最後）
-    ['in_progress', 'pending'].forEach(key => {
-        columns[key].items.sort((a, b) => {
-            const da = toSortableDate(a.shoot_date);
-            const db = toSortableDate(b.shoot_date);
-            if (!da && !db) return 0;
-            if (!da) return 1;   // 無日期排後面
-            if (!db) return -1;
-            return da.localeCompare(db);  // 升序：最近日期在上
-        });
+    // 待執行：按拍攝日期排序（最近的在上面）
+    columns['in_progress'].items.sort((a, b) => {
+        const da = toSortableDate(a.shoot_date);
+        const db = toSortableDate(b.shoot_date);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da.localeCompare(db);
+    });
+    // 尚未回應：按新增日期排序（最新的在上面）
+    columns['pending'].items.sort((a, b) => {
+        const da = toSortableDate(a.created_at);
+        const db = toSortableDate(b.created_at);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return db.localeCompare(da);  // 降序：最新建立的在上
     });
 
     // 渲染卡片與數量
@@ -623,7 +631,7 @@ function createJobCard(job) {
     
     // 元數據 (稿酬、備註前幾字)
     let metaHTML = '';
-    if (job.compensation || job.shoot_date || job.note) {
+    if (job.compensation || job.shoot_date || job.created_at || job.note) {
         metaHTML = `<div class="card-meta">`;
         if (job.compensation) {
             metaHTML += `
@@ -646,6 +654,17 @@ function createJobCard(job) {
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     <span class="font-mono">${escapeHTML(formatShootDate(job.shoot_date))}</span>
+                </div>
+            `;
+        }
+        if (job.created_at && !job.shoot_date) {
+            metaHTML += `
+                <div class="meta-item">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span class="font-mono">${escapeHTML(formatShootDate(job.created_at))}</span>
                 </div>
             `;
         }
@@ -696,6 +715,8 @@ function openSidebar(job) {
     formCompensation.value = job.compensation || '';
     formContact.value = job.contact || '';
     formShootDate.value = toDatetimeLocalValue(job.shoot_date || '');
+    const formCreatedAt = document.getElementById('form-created-at');
+    if (formCreatedAt) formCreatedAt.value = job.created_at ? formatShootDate(job.created_at) : '（無記錄）';
     formNote.value = job.note || '';
 
     sidebar.classList.add('open');
