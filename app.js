@@ -442,6 +442,7 @@ function setupEventListeners() {
             compensation: formCompensation.value.trim(),
             contact: formContact.value.trim(),
             shoot_date: formShootDate.value,
+            created_at: document.getElementById('form-created-at').value,
             note: formNote.value.trim()
         };
 
@@ -716,7 +717,7 @@ function openSidebar(job) {
     formContact.value = job.contact || '';
     formShootDate.value = toDatetimeLocalValue(job.shoot_date || '');
     const formCreatedAt = document.getElementById('form-created-at');
-    if (formCreatedAt) formCreatedAt.value = job.created_at ? formatShootDate(job.created_at) : '（無記錄）';
+    if (formCreatedAt) formCreatedAt.value = toDatetimeLocalValue(job.created_at || '');
     formNote.value = job.note || '';
 
     sidebar.classList.add('open');

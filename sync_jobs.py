@@ -186,6 +186,9 @@ def sync_directory(pdf_dir, db_path):
         else:
             pdf_url = upload_to_catbox(pdf_path)
             time.sleep(2)
+            # 使用 PDF 檔案建立日期，而非同步時間
+            file_ctime = os.path.getctime(pdf_path)
+            file_created_str = datetime.fromtimestamp(file_ctime).strftime("%Y/%m/%d %H:%M")
             
             job_map[pdf] = {
                 "filename": pdf,
@@ -197,7 +200,7 @@ def sync_directory(pdf_dir, db_path):
                 "contact": "",
                 "platform": "",
                 "shoot_date": "",
-                "created_at": now_str,
+                "created_at": file_created_str,
                 "pdf_url": pdf_url or ""
             }
             
