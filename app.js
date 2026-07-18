@@ -60,7 +60,10 @@ const formStatus = document.getElementById('form-status');
 const formTag = document.getElementById('form-tag');
 const formCompensation = document.getElementById('form-compensation');
 const formContact = document.getElementById('form-contact');
-const formShootDate = document.getElementById('form-shoot-date');
+const formShootDateDay = document.getElementById('form-shoot-date-day');
+const formShootDateType = document.getElementById('form-shoot-date-type');
+const formShootDateTime = document.getElementById('form-shoot-date-time');
+const formShootTimeGroup = document.getElementById('form-shoot-time-group');
 const formNote = document.getElementById('form-note');
 
 // 初始化
@@ -261,14 +264,27 @@ function showAddJobModal() {
                     </div>
                 </div>
 
-                <div class="form-row-2">
-                    <div class="form-group">
-                        <label for="add-compensation">稿酬 / 條件</label>
-                        <input type="text" id="add-compensation" class="setup-input font-mono" placeholder="$5,000 + 互惠">
+                <div class="form-group">
+                    <label for="add-compensation">稿酬 / 條件</label>
+                    <input type="text" id="add-compensation" class="setup-input font-mono" placeholder="$5,000 + 互惠">
+                </div>
+
+                <div class="form-row-3">
+                    <div class="form-group font-mono">
+                        <label for="add-shoot-date-day">拍攝日期</label>
+                        <input type="date" id="add-shoot-date-day" class="setup-input font-mono">
                     </div>
                     <div class="form-group">
-                        <label for="add-shoot-date">拍攝日期</label>
-                        <input type="datetime-local" id="add-shoot-date" class="setup-input font-mono">
+                        <label for="add-shoot-date-type">時間類型</label>
+                        <select id="add-shoot-date-type" class="setup-input">
+                            <option value="all_day">全天</option>
+                            <option value="half_day">半天</option>
+                            <option value="specific_time">特定時間</option>
+                        </select>
+                    </div>
+                    <div class="form-group font-mono" id="add-shoot-time-group" style="display:none;">
+                        <label for="add-shoot-date-time">拍攝時間</label>
+                        <input type="time" id="add-shoot-date-time" class="setup-input font-mono">
                     </div>
                 </div>
 
@@ -310,6 +326,19 @@ function showAddJobModal() {
     document.getElementById('add-job-close').addEventListener('click', closeModal);
     document.getElementById('add-job-cancel').addEventListener('click', closeModal);
 
+    // 時間類型切換
+    const addDateType = document.getElementById('add-shoot-date-type');
+    const addTimeGroup = document.getElementById('add-shoot-time-group');
+    if (addDateType && addTimeGroup) {
+        addDateType.addEventListener('change', () => {
+            if (addDateType.value === 'specific_time') {
+                addTimeGroup.style.display = 'block';
+            } else {
+                addTimeGroup.style.display = 'none';
+            }
+        });
+    }
+
     // 點擊背景關閉
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) closeModal();
@@ -332,12 +361,14 @@ function showAddJobModal() {
         const now = new Date();
         const pad = (n) => String(n).padStart(2, '0');
         const createdAt = `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        const shootDateVal = composeShootDate('add-shoot-date-day', 'add-shoot-date-type', 'add-shoot-date-time');
+        
         const newJob = {
             title: title,
             tag: document.getElementById('add-tag').value.trim(),
             status: document.getElementById('add-status').value,
             compensation: document.getElementById('add-compensation').value.trim(),
-            shoot_date: document.getElementById('add-shoot-date').value,
+            shoot_date: shootDateVal,
             contact: document.getElementById('add-contact').value.trim(),
             platform: document.getElementById('add-platform').value.trim(),
             note: document.getElementById('add-note').value.trim(),
@@ -452,18 +483,31 @@ function setupEventListeners() {
     closeSidebarBtn.addEventListener('click', closeSidebar);
     cancelBtn.addEventListener('click', closeSidebar);
 
+    // 側邊欄時間類型切換
+    if (formShootDateType && formShootTimeGroup) {
+        formShootDateType.addEventListener('change', () => {
+            if (formShootDateType.value === 'specific_time') {
+                formShootTimeGroup.style.display = 'block';
+            } else {
+                formShootTimeGroup.style.display = 'none';
+            }
+        });
+    }
+
     // 表單儲存
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const filename = editFilenameInput.value;
+        const shootDateVal = composeShootDate('form-shoot-date-day', 'form-shoot-date-type', 'form-shoot-date-time');
+        
         const updatedData = {
             filename: filename,
             status: formStatus.value,
             tag: formTag.value.trim(),
             compensation: formCompensation.value.trim(),
             contact: formContact.value.trim(),
-            shoot_date: formShootDate.value,
+            shoot_date: shootDateVal,
             created_at: document.getElementById('form-created-at').value,
             note: formNote.value.trim()
         };
@@ -566,6 +610,11 @@ async function fetchJobs() {
         const response = await fetch('/api/jobs');
         if (response.ok) {
             allJobs = await response.json();
+            allJobs = allJobs.map(job => {
+                if (job.shoot_date) job.shoot_date = normalizeDate(job.shoot_date);
+                if (job.created_at) job.created_at = normalizeDate(job.created_at);
+                return job;
+            });
             renderBoard(allJobs);
         }
     } catch (error) {
@@ -737,7 +786,18 @@ function openSidebar(job) {
     formTag.value = job.tag || '';
     formCompensation.value = job.compensation || '';
     formContact.value = job.contact || '';
-    formShootDate.value = toDatetimeLocalValue(job.shoot_date || '');
+    const parsed = parseShootDate(job.shoot_date || '');
+    if (formShootDateDay) formShootDateDay.value = parsed.day;
+    if (formShootDateType) {
+        formShootDateType.value = parsed.type;
+        if (parsed.type === 'specific_time') {
+            if (formShootTimeGroup) formShootTimeGroup.style.display = 'block';
+            if (formShootDateTime) formShootDateTime.value = parsed.time;
+        } else {
+            if (formShootTimeGroup) formShootTimeGroup.style.display = 'none';
+            if (formShootDateTime) formShootDateTime.value = '';
+        }
+    }
     const formCreatedAt = document.getElementById('form-created-at');
     if (formCreatedAt) formCreatedAt.value = toDatetimeLocalValue(job.created_at || '');
     formNote.value = job.note || '';
@@ -829,8 +889,73 @@ function setupDragAndDrop() {
     });
 }
 
-// ====== 日期統一正規化 ======
-// 所有日期在載入時都先經過此函式，輸出統一為 YYYY/MM/DD HH:mm
+// ====== 日期與時間工具 ======
+
+// 組合為人類可讀的格式 YYYY/MM/DD 半天 / YYYY/MM/DD 全天 / YYYY/MM/DD HH:mm
+function composeShootDate(dayId, typeId, timeId) {
+    const dayEl = document.getElementById(dayId);
+    const typeEl = document.getElementById(typeId);
+    const timeEl = document.getElementById(timeId);
+    if (!dayEl) return '';
+    const day = dayEl.value;
+    const type = typeEl ? typeEl.value : 'all_day';
+    const time = timeEl ? timeEl.value : '00:00';
+    if (!day) return '';
+    
+    // 統一用 slash / 分隔
+    const formattedDay = day.replace(/-/g, '/');
+    
+    if (type === 'all_day') {
+        return `${formattedDay} 全天`;
+    } else if (type === 'half_day') {
+        return `${formattedDay} 半天`;
+    } else {
+        return `${formattedDay} ${time || '00:00'}`;
+    }
+}
+
+// 解析各種日期時間格式為前台 UI 用的 day, type, time 物件
+function parseShootDate(val) {
+    const defaultVal = { day: '', type: 'all_day', time: '' };
+    if (!val) return defaultVal;
+    
+    const str = String(val).trim();
+    
+    // 先做一次標準正規化
+    const normalized = normalizeDate(str);
+    if (!normalized) return defaultVal;
+    
+    // 1. 處理 YYYY/MM/DD 全天
+    if (normalized.endsWith(' 全天')) {
+        const day = normalized.replace(' 全天', '').replace(/\//g, '-');
+        return { day, type: 'all_day', time: '' };
+    }
+    
+    // 2. 處理 YYYY/MM/DD 半天
+    if (normalized.endsWith(' 半天')) {
+        const day = normalized.replace(' 半天', '').replace(/\//g, '-');
+        return { day, type: 'half_day', time: '' };
+    }
+    
+    // 3. 處理 YYYY/MM/DD HH:mm
+    const dateTimeMatch = normalized.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+    if (dateTimeMatch) {
+        const day = `${dateTimeMatch[1]}-${dateTimeMatch[2]}-${dateTimeMatch[3]}`;
+        const time = `${dateTimeMatch[4]}:${dateTimeMatch[5]}`;
+        return { day, type: 'specific_time', time };
+    }
+    
+    // 4. 處理只有 YYYY/MM/DD 的情況
+    const dateOnlyMatch = normalized.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+    if (dateOnlyMatch) {
+        const day = `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
+        return { day, type: 'all_day', time: '' };
+    }
+    
+    return defaultVal;
+}
+
+// 所有日期在載入與儲存時都先經過此函式，輸出統一為 YYYY/MM/DD HH:mm 或 YYYY/MM/DD 半天 / YYYY/MM/DD 全天
 function normalizeDate(val) {
     if (!val) return '';
     const str = String(val).trim();
@@ -853,43 +978,57 @@ function normalizeDate(val) {
         return (hh === '00' && mm === '00') ? `${y}/${m}/${d}` : `${y}/${m}/${d} ${hh}:${mm}`;
     }
     
-    // 3. 空格分隔: "2026-07-17 1:19" 或 "2026-07-17 14:00"
+    // 3. 帶有 hyphen 的半天/全天格式: 2026-07-22 半天
+    const customMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(半天|全天)$/);
+    if (customMatch) {
+        return `${customMatch[1]}/${customMatch[2]}/${customMatch[3]} ${customMatch[4]}`;
+    }
+    
+    // 4. 空格分隔帶時間: "2026-07-17 1:19" 或 "2026-07-17 14:00"
     const spaceMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})/);
     if (spaceMatch) {
         const [, y, m, d, hh, mm] = spaceMatch;
         return `${y}/${m}/${d} ${String(hh).padStart(2, '0')}:${mm}`;
     }
     
-    // 4. 純日期: 2026-07-22
+    // 5. 純日期帶 hyphen: 2026-07-22
     const dateOnly = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (dateOnly) {
         return `${dateOnly[1]}/${dateOnly[2]}/${dateOnly[3]}`;
     }
     
-    // 5. 已經是 YYYY/MM/DD 格式（保持不變）
+    // 6. 已經是 YYYY/MM/DD 或帶有半天/全天後綴格式
     if (str.match(/^\d{4}\/\d{2}\/\d{2}/)) return str;
     
     return str;
 }
 
-// 顯示用：直接用 normalizeDate（已統一為 YYYY/MM/DD HH:mm）
+// 顯示用
 function formatShootDate(val) {
     return normalizeDate(val);
 }
 
-// 排序用：YYYY/MM/DD HH:mm → YYYY-MM-DD HH:mm（可直接 localeCompare）
+// 排序用：統一轉為 YYYY-MM-DD HH:mm 以利 localeCompare 排序
 function toSortableDate(val) {
     const n = normalizeDate(val);
     if (!n) return '';
-    // YYYY/MM/DD HH:mm → YYYY-MM-DD HH:mm
-    return n.replace(/\//g, '-').replace(/^(\d{4}-\d{2}-\d{2})$/, '$1 00:00');
+    let sortable = n.replace(/\//g, '-');
+    if (sortable.endsWith(' 全天')) {
+        return sortable.replace(' 全天', ' 00:00');
+    }
+    if (sortable.endsWith(' 半天')) {
+        return sortable.replace(' 半天', ' 12:00');
+    }
+    if (sortable.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return sortable + ' 00:00';
+    }
+    return sortable;
 }
 
-// 表單回填用：YYYY/MM/DD HH:mm → YYYY-MM-DDTHH:mm（datetime-local input 格式）
+// 表單回填用 (純日期或 ISO 等相容)
 function toDatetimeLocalValue(val) {
     const n = normalizeDate(val);
     if (!n) return '';
-    // YYYY/MM/DD HH:mm → YYYY-MM-DDTHH:mm
     const m = n.match(/^(\d{4})\/(\d{2})\/(\d{2})(?:\s+(\d{2}):(\d{2}))?/);
     if (m) {
         const hh = m[4] || '00';

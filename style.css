@@ -722,6 +722,13 @@ textarea.form-control {
     gap: 12px;
 }
 
+.form-row-3 {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px;
+}
+
+
 .add-job-form select.setup-input {
     appearance: none;
     -webkit-appearance: none;
@@ -774,7 +781,7 @@ textarea.form-control {
         max-height: 85vh;
     }
 
-    .form-row-2 {
+    .form-row-2, .form-row-3 {
         grid-template-columns: 1fr;
     }
 

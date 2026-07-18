@@ -151,9 +151,23 @@
                     <input type="text" id="form-contact" class="form-control" placeholder="例如：張小姐 / LINE: @koc123">
                 </div>
 
-                <div class="form-group font-mono">
-                    <label for="form-shoot-date">拍攝日期</label>
-                    <input type="datetime-local" id="form-shoot-date" class="form-control">
+                <div class="form-row-3">
+                    <div class="form-group font-mono">
+                        <label for="form-shoot-date-day">拍攝日期</label>
+                        <input type="date" id="form-shoot-date-day" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-shoot-date-type">時間類型</label>
+                        <select id="form-shoot-date-type" class="form-control">
+                            <option value="all_day">全天</option>
+                            <option value="half_day">半天</option>
+                            <option value="specific_time">特定時間</option>
+                        </select>
+                    </div>
+                    <div class="form-group font-mono" id="form-shoot-time-group" style="display:none;">
+                        <label for="form-shoot-date-time">拍攝時間</label>
+                        <input type="time" id="form-shoot-date-time" class="form-control">
+                    </div>
                 </div>
 
                 <div class="form-group font-mono">
