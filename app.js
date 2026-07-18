@@ -2,6 +2,7 @@
 
 let allJobs = [];
 let activeFilename = null;
+let inProgressSortOrder = 'asc'; // 'asc' = 舊→新, 'desc' = 新→舊
 
 // 從 localStorage 讀取設定（不再硬編碼任何敏感資訊）
 let sheetId = localStorage.getItem('sheet_id') || "";
@@ -81,6 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupEventListeners();
     setupDragAndDrop();
+
+    // 排序切換按鈕
+    const sortToggleBtn = document.getElementById('sort-toggle-btn');
+    if (sortToggleBtn) {
+        sortToggleBtn.addEventListener('click', () => {
+            inProgressSortOrder = inProgressSortOrder === 'asc' ? 'desc' : 'asc';
+            const label = sortToggleBtn.querySelector('.sort-label');
+            label.textContent = inProgressSortOrder === 'asc' ? '舊→新' : '新→舊';
+            renderBoard(allJobs);
+        });
+    }
 });
 
 // 簡易 Toast 提示
@@ -584,14 +596,14 @@ function renderBoard(jobs) {
             columns[job.status].items.push(job);
         }
     });
-    // 待執行：按拍攝日期排序（最近的在上面）
+    // 待執行：按拍攝日期排序（方向可切換）
     columns['in_progress'].items.sort((a, b) => {
         const da = toSortableDate(a.shoot_date);
         const db = toSortableDate(b.shoot_date);
         if (!da && !db) return 0;
         if (!da) return 1;
         if (!db) return -1;
-        return da.localeCompare(db);
+        return inProgressSortOrder === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
     });
     // 尚未回應：按新增日期排序（最新的在上面）
     columns['pending'].items.sort((a, b) => {

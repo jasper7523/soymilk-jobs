@@ -185,6 +185,48 @@ body {
     border-radius: 10px;
 }
 
+.column-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.btn-sort:hover {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: var(--color-border);
+    color: var(--color-text-main);
+}
+
+.btn-sort:active {
+    transform: scale(0.95);
+}
+
+.btn-sort .icon {
+    width: 12px;
+    height: 12px;
+}
+
+.btn-sort .sort-label {
+    font-family: "Geist Mono", "SF Mono", "JetBrains Mono", Menlo, monospace;
+    letter-spacing: 0.02em;
+}
+
 .column-cards {
     display: flex;
     flex-direction: column;

@@ -45,7 +45,17 @@
             <!-- 待執行 Column -->
             <div class="board-column" data-status="in_progress">
                 <div class="column-header">
-                    <span class="status-badge badge-progress">待執行</span>
+                    <div class="column-header-left">
+                        <span class="status-badge badge-progress">待執行</span>
+                        <button id="sort-toggle-btn" class="btn-sort" title="切換排序：舊→新 / 新→舊">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 9 6"></polyline>
+                                <polyline points="3 12 15 12"></polyline>
+                                <polyline points="3 18 21 18"></polyline>
+                            </svg>
+                            <span class="sort-label">舊→新</span>
+                        </button>
+                    </div>
                     <span class="column-count" id="count-in_progress">0</span>
                 </div>
                 <div class="column-cards" id="cards-in_progress"></div>
