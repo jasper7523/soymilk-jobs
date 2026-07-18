@@ -205,13 +205,9 @@ def sync_directory(pdf_dir, db_path):
             }
             
     for pdf, job in job_map.items():
-        # 網頁手動新增的案件（WEB_*.manual）沒有本地 PDF，不可封存
+        # 網頁手動新增的案件（WEB_*.manual）沒有本地 PDF，不可封存，狀態保持不動
         is_web_job = pdf.startswith("WEB_") or pdf.endswith(".manual")
-        if is_web_job and job["status"] == "archived":
-            # 復原被誤封存的網頁案件
-            job["status"] = "pending"
-            safe_print(f"  復原被誤封存的網頁案件: {job.get('title', pdf)}")
-        elif pdf not in current_pdfs and not is_web_job and job["status"] != "archived":
+        if pdf not in current_pdfs and not is_web_job and job["status"] != "archived":
             job["status"] = "archived"
             
     updated_jobs = list(job_map.values())
