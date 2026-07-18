@@ -582,6 +582,17 @@ function renderBoard(jobs) {
             columns[job.status].items.push(job);
         }
     });
+    // 待執行 & 尚未回應：按拍攝日期排序（最近的在上面，無日期排最後）
+    ['in_progress', 'pending'].forEach(key => {
+        columns[key].items.sort((a, b) => {
+            const da = toSortableDate(a.shoot_date);
+            const db = toSortableDate(b.shoot_date);
+            if (!da && !db) return 0;
+            if (!da) return 1;   // 無日期排後面
+            if (!db) return -1;
+            return da.localeCompare(db);  // 升序：最近日期在上
+        });
+    });
 
     // 渲染卡片與數量
     Object.keys(columns).forEach(status => {
@@ -799,6 +810,34 @@ function formatShootDate(val) {
         const [y, m, d] = date.split('-');
         return time ? `${y}/${m}/${d} ${time}` : `${y}/${m}/${d}`;
     }
+    
+    return str;
+}
+
+// 排序用：各種日期格式 → 統一 YYYY-MM-DD HH:mm 字串（可直接 localeCompare）
+function toSortableDate(val) {
+    if (!val) return '';
+    const str = String(val);
+    
+    // Date(2026,6,22,14,0,0)
+    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
+    if (gvizMatch) {
+        const y = gvizMatch[1];
+        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');
+        const d = String(gvizMatch[3]).padStart(2, '0');
+        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : '00';
+        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : '00';
+        return `${y}-${m}-${d} ${hh}:${mm}`;
+    }
+    
+    // 2026/07/22 14:00
+    const slashMatch = str.match(/^(\d{4})\/(\d{2})\/(\d{2})(?:\s+(\d{2}):(\d{2}))?/);
+    if (slashMatch) {
+        return `${slashMatch[1]}-${slashMatch[2]}-${slashMatch[3]} ${slashMatch[4] || '00'}:${slashMatch[5] || '00'}`;
+    }
+    
+    // 2026-07-22T14:00
+    if (str.includes('T')) return str.replace('T', ' ');
     
     return str;
 }
