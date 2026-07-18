@@ -178,6 +178,10 @@ def sync_directory(pdf_dir, db_path):
             job_map[pdf]["title"] = title
             job_map[pdf]["tag"] = tag
             
+            # 已存在的案件也用檔案建立日期更新 created_at
+            file_ctime = os.path.getctime(pdf_path)
+            job_map[pdf]["created_at"] = datetime.fromtimestamp(file_ctime).strftime("%Y/%m/%d %H:%M")
+            
             if not job_map[pdf].get("pdf_url"):
                 pdf_url = upload_to_catbox(pdf_path)
                 if pdf_url:

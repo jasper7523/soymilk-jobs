@@ -36,7 +36,17 @@
             <!-- 尚未回應 Column -->
             <div class="board-column" data-status="pending">
                 <div class="column-header">
-                    <span class="status-badge badge-pending">尚未回應</span>
+                    <div class="column-header-left">
+                        <span class="status-badge badge-pending">尚未回應</span>
+                        <button id="sort-toggle-pending" class="btn-sort" title="切換排序：新→舊 / 舊→新">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 9 6"></polyline>
+                                <polyline points="3 12 15 12"></polyline>
+                                <polyline points="3 18 21 18"></polyline>
+                            </svg>
+                            <span class="sort-label">新→舊</span>
+                        </button>
+                    </div>
                     <span class="column-count" id="count-pending">0</span>
                 </div>
                 <div class="column-cards" id="cards-pending"></div>

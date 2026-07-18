@@ -3,6 +3,7 @@
 let allJobs = [];
 let activeFilename = null;
 let inProgressSortOrder = 'asc'; // 'asc' = 舊→新, 'desc' = 新→舊
+let pendingSortOrder = 'desc';   // 'asc' = 舊→新, 'desc' = 新→舊
 
 // 從 localStorage 讀取設定（不再硬編碼任何敏感資訊）
 let sheetId = localStorage.getItem('sheet_id') || "";
@@ -83,13 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     setupDragAndDrop();
 
-    // 排序切換按鈕
+    // 排序切換按鈕 — 待執行
     const sortToggleBtn = document.getElementById('sort-toggle-btn');
     if (sortToggleBtn) {
         sortToggleBtn.addEventListener('click', () => {
             inProgressSortOrder = inProgressSortOrder === 'asc' ? 'desc' : 'asc';
-            const label = sortToggleBtn.querySelector('.sort-label');
-            label.textContent = inProgressSortOrder === 'asc' ? '舊→新' : '新→舊';
+            sortToggleBtn.querySelector('.sort-label').textContent = inProgressSortOrder === 'asc' ? '舊→新' : '新→舊';
+            renderBoard(allJobs);
+        });
+    }
+
+    // 排序切換按鈕 — 尚未回應
+    const sortTogglePending = document.getElementById('sort-toggle-pending');
+    if (sortTogglePending) {
+        sortTogglePending.addEventListener('click', () => {
+            pendingSortOrder = pendingSortOrder === 'asc' ? 'desc' : 'asc';
+            sortTogglePending.querySelector('.sort-label').textContent = pendingSortOrder === 'asc' ? '舊→新' : '新→舊';
             renderBoard(allJobs);
         });
     }
@@ -605,14 +615,14 @@ function renderBoard(jobs) {
         if (!db) return -1;
         return inProgressSortOrder === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
     });
-    // 尚未回應：按新增日期排序（最新的在上面）
+    // 尚未回應：按新增日期排序（方向可切換）
     columns['pending'].items.sort((a, b) => {
         const da = toSortableDate(a.created_at);
         const db = toSortableDate(b.created_at);
         if (!da && !db) return 0;
         if (!da) return 1;
         if (!db) return -1;
-        return db.localeCompare(da);  // 降序：最新建立的在上
+        return pendingSortOrder === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
     });
 
     // 渲染卡片與數量
