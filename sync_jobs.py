@@ -9,6 +9,39 @@ from datetime import datetime
 
 SETTINGS_FILE = "settings.json"
 
+def normalize_date_str(val):
+    """統一日期格式為 YYYY/MM/DD HH:mm（或 YYYY/MM/DD 半天/全天）"""
+    if not val:
+        return val
+    val = str(val).strip()
+    
+    # 已經是正確格式: 2026/07/14 15:13 或 2026/07/14 半天
+    if re.match(r'^\d{4}/\d{2}/\d{2}', val):
+        return val
+    
+    # ISO 格式: 2026-07-18T02:55:04.000Z
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})', val)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}/{m.group(3)} {m.group(4)}:{m.group(5)}"
+    
+    # 半天/全天帶 hyphen: 2026-07-22 半天
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})\s+(半天|全天)$', val)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}/{m.group(3)} {m.group(4)}"
+    
+    # Hyphen+空格+時間: 2026-07-17 23:05 或 2026-07-18 9:06
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})', val)
+    if m:
+        hh = m.group(4).zfill(2)
+        return f"{m.group(1)}/{m.group(2)}/{m.group(3)} {hh}:{m.group(5)}"
+    
+    # 純日期帶 hyphen: 2026-07-18
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})$', val)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}/{m.group(3)}"
+    
+    return val
+
 def safe_print(message):
     try:
         print(message)
@@ -215,6 +248,13 @@ def sync_directory(pdf_dir, db_path):
             job["status"] = "archived"
             
     updated_jobs = list(job_map.values())
+    
+    # 上傳前統一正規化所有日期格式
+    for job in updated_jobs:
+        if job.get("created_at"):
+            job["created_at"] = normalize_date_str(job["created_at"])
+        if job.get("shoot_date"):
+            job["shoot_date"] = normalize_date_str(job["shoot_date"])
     
     if gas_url:
         upload_to_cloud(gas_url, updated_jobs)
