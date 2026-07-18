@@ -520,9 +520,9 @@ async function fetchJobs() {
                                 const header = cols[idx];
                                 if (header) {
                                     let val = cell ? (cell.v !== null ? cell.v : "") : "";
-                                    // Visualization API 日期格式轉換：Date(y,m,d,h,m,s) → 可讀字串
-                                    if (header === 'shoot_date' && typeof val === 'string' && val.startsWith('Date(')) {
-                                        val = formatShootDate(val);
+                                    // 所有日期欄位統一正規化
+                                    if ((header === 'shoot_date' || header === 'created_at') && val) {
+                                        val = normalizeDate(val);
                                     }
                                     item[header] = val;
                                 }
@@ -807,95 +807,74 @@ function setupDragAndDrop() {
     });
 }
 
-// 日期格式化：將 Visualization API 的 Date(y,m,d,h,m,s) 或 ISO 字串轉為可讀格式
+// ====== 日期統一正規化 ======
+// 所有日期在載入時都先經過此函式，輸出統一為 YYYY/MM/DD HH:mm
+function normalizeDate(val) {
+    if (!val) return '';
+    const str = String(val).trim();
+    
+    // 1. Google Visualization API: Date(2026,6,22,14,0,0)  月份 0-indexed
+    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
+    if (gvizMatch) {
+        const y = gvizMatch[1];
+        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');
+        const d = String(gvizMatch[3]).padStart(2, '0');
+        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : '00';
+        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : '00';
+        return (hh === '00' && mm === '00') ? `${y}/${m}/${d}` : `${y}/${m}/${d} ${hh}:${mm}`;
+    }
+    
+    // 2. ISO 格式: 2026-07-18T02:55:04.000Z 或 2026-07-22T14:00
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (isoMatch) {
+        const [, y, m, d, hh, mm] = isoMatch;
+        return (hh === '00' && mm === '00') ? `${y}/${m}/${d}` : `${y}/${m}/${d} ${hh}:${mm}`;
+    }
+    
+    // 3. 空格分隔: "2026-07-17 1:19" 或 "2026-07-17 14:00"
+    const spaceMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})/);
+    if (spaceMatch) {
+        const [, y, m, d, hh, mm] = spaceMatch;
+        return `${y}/${m}/${d} ${String(hh).padStart(2, '0')}:${mm}`;
+    }
+    
+    // 4. 純日期: 2026-07-22
+    const dateOnly = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnly) {
+        return `${dateOnly[1]}/${dateOnly[2]}/${dateOnly[3]}`;
+    }
+    
+    // 5. 已經是 YYYY/MM/DD 格式（保持不變）
+    if (str.match(/^\d{4}\/\d{2}\/\d{2}/)) return str;
+    
+    return str;
+}
+
+// 顯示用：直接用 normalizeDate（已統一為 YYYY/MM/DD HH:mm）
 function formatShootDate(val) {
-    if (!val) return '';
-    const str = String(val);
-    
-    // 處理 Google Visualization API 格式：Date(2026,6,22,14,0,0)  （月份 0-indexed）
-    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
-    if (gvizMatch) {
-        const y = gvizMatch[1];
-        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');  // +1 修正月份
-        const d = String(gvizMatch[3]).padStart(2, '0');
-        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : null;
-        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : null;
-        if (hh && mm && (hh !== '00' || mm !== '00')) {
-            return `${y}/${m}/${d} ${hh}:${mm}`;
-        }
-        return `${y}/${m}/${d}`;
-    }
-    
-    // 處理 datetime-local 格式：2026-07-22T14:00
-    if (str.includes('T')) {
-        const [date, time] = str.split('T');
-        const [y, m, d] = date.split('-');
-        return time ? `${y}/${m}/${d} ${time}` : `${y}/${m}/${d}`;
-    }
-    
-    return str;
+    return normalizeDate(val);
 }
 
-// 排序用：各種日期格式 → 統一 YYYY-MM-DD HH:mm 字串（可直接 localeCompare）
+// 排序用：YYYY/MM/DD HH:mm → YYYY-MM-DD HH:mm（可直接 localeCompare）
 function toSortableDate(val) {
-    if (!val) return '';
-    const str = String(val);
-    
-    // Date(2026,6,22,14,0,0)
-    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
-    if (gvizMatch) {
-        const y = gvizMatch[1];
-        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');
-        const d = String(gvizMatch[3]).padStart(2, '0');
-        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : '00';
-        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : '00';
-        return `${y}-${m}-${d} ${hh}:${mm}`;
-    }
-    
-    // 2026/07/22 14:00
-    const slashMatch = str.match(/^(\d{4})\/(\d{2})\/(\d{2})(?:\s+(\d{2}):(\d{2}))?/);
-    if (slashMatch) {
-        return `${slashMatch[1]}-${slashMatch[2]}-${slashMatch[3]} ${slashMatch[4] || '00'}:${slashMatch[5] || '00'}`;
-    }
-    
-    // 2026-07-22T14:00
-    if (str.includes('T')) return str.replace('T', ' ');
-    
-    return str;
+    const n = normalizeDate(val);
+    if (!n) return '';
+    // YYYY/MM/DD HH:mm → YYYY-MM-DD HH:mm
+    return n.replace(/\//g, '-').replace(/^(\d{4}-\d{2}-\d{2})$/, '$1 00:00');
 }
 
-// 反向轉換：各種格式 → datetime-local input 的 YYYY-MM-DDTHH:mm
+// 表單回填用：YYYY/MM/DD HH:mm → YYYY-MM-DDTHH:mm（datetime-local input 格式）
 function toDatetimeLocalValue(val) {
-    if (!val) return '';
-    const str = String(val);
-    
-    // Date(2026,6,22,14,0,0) → 2026-07-22T14:00
-    const gvizMatch = str.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
-    if (gvizMatch) {
-        const y = gvizMatch[1];
-        const m = String(Number(gvizMatch[2]) + 1).padStart(2, '0');
-        const d = String(gvizMatch[3]).padStart(2, '0');
-        const hh = gvizMatch[4] ? String(gvizMatch[4]).padStart(2, '0') : '00';
-        const mm = gvizMatch[5] ? String(gvizMatch[5]).padStart(2, '0') : '00';
-        return `${y}-${m}-${d}T${hh}:${mm}`;
+    const n = normalizeDate(val);
+    if (!n) return '';
+    // YYYY/MM/DD HH:mm → YYYY-MM-DDTHH:mm
+    const m = n.match(/^(\d{4})\/(\d{2})\/(\d{2})(?:\s+(\d{2}):(\d{2}))?/);
+    if (m) {
+        const hh = m[4] || '00';
+        const mm = m[5] || '00';
+        return `${m[1]}-${m[2]}-${m[3]}T${hh}:${mm}`;
     }
-    
-    // 2026/07/22 14:00 → 2026-07-22T14:00
-    const slashMatch = str.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
-    if (slashMatch) {
-        return `${slashMatch[1]}-${slashMatch[2]}-${slashMatch[3]}T${slashMatch[4]}:${slashMatch[5]}`;
-    }
-    
-    // 2026/07/22 → 2026-07-22T00:00
-    const dateOnlyMatch = str.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
-    if (dateOnlyMatch) {
-        return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}T00:00`;
-    }
-    
-    // 已經是 YYYY-MM-DDTHH:mm 格式
-    if (str.includes('T')) return str;
-    
-    return str;
+    return '';
 }
 function escapeHTML(str) {
     if (!str) return '';
