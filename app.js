@@ -585,7 +585,7 @@ async function fetchJobs() {
                             row.c.forEach((cell, idx) => {
                                 const header = cols[idx];
                                 if (header) {
-                                    let val = cell ? (cell.v !== null ? cell.v : "") : "";
+                                    let val = cell ? (cell.v !== null && cell.v !== undefined ? String(cell.v) : "") : "";
                                     // 所有日期欄位統一正規化
                                     if ((header === 'shoot_date' || header === 'created_at') && val) {
                                         val = normalizeDate(val);
@@ -1038,8 +1038,9 @@ function toDatetimeLocalValue(val) {
     return '';
 }
 function escapeHTML(str) {
-    if (!str) return '';
-    return str
+    if (str === null || str === undefined) return '';
+    const s = String(str);
+    return s
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
