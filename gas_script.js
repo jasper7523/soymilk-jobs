@@ -69,7 +69,13 @@ function doPost(e) {
         }
         rows.push(row);
       }
-      sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+      var dataRange = sheet.getRange(2, 1, rows.length, headers.length);
+      // 先把 shoot_date 和 created_at 欄位設為純文字格式，防止 Google Sheets 自動轉 Date 導致時區偏移
+      var shootDateCol = headers.indexOf("shoot_date") + 1;
+      var createdAtCol = headers.indexOf("created_at") + 1;
+      if (shootDateCol > 0) sheet.getRange(2, shootDateCol, rows.length, 1).setNumberFormat('@');
+      if (createdAtCol > 0) sheet.getRange(2, createdAtCol, rows.length, 1).setNumberFormat('@');
+      dataRange.setValues(rows);
     }
     return ContentService.createTextOutput(JSON.stringify({success: true}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -100,6 +106,12 @@ function doPost(e) {
       row.push(newJob[headers[j]] || "");
     }
     sheet.appendRow(row);
+    // 新增的那一行，日期欄位強制純文字格式
+    var lastRow = sheet.getLastRow();
+    var shootDateCol = headers.indexOf("shoot_date") + 1;
+    var createdAtCol = headers.indexOf("created_at") + 1;
+    if (shootDateCol > 0) sheet.getRange(lastRow, shootDateCol).setNumberFormat('@');
+    if (createdAtCol > 0) sheet.getRange(lastRow, createdAtCol).setNumberFormat('@');
     
     return ContentService.createTextOutput(JSON.stringify({success: true, filename: newJob.filename}))
       .setMimeType(ContentService.MimeType.JSON);
@@ -111,6 +123,7 @@ function doPost(e) {
     var data = sheet.getDataRange().getValues();
     var headers = data[0];
     var filenameIdx = headers.indexOf("filename");
+    var dateColumns = ["shoot_date", "created_at"];
     
     var updated = false;
     for (var i = 1; i < data.length; i++) {
@@ -119,7 +132,12 @@ function doPost(e) {
         for (var key in updatedJob) {
           var colIdx = headers.indexOf(key);
           if (colIdx !== -1) {
-            sheet.getRange(i + 1, colIdx + 1).setValue(updatedJob[key]);
+            var cell = sheet.getRange(i + 1, colIdx + 1);
+            // 日期欄位強制純文字格式，防止 Google Sheets 自動轉 Date
+            if (dateColumns.indexOf(key) !== -1) {
+              cell.setNumberFormat('@');
+            }
+            cell.setValue(updatedJob[key]);
           }
         }
         updated = true;
