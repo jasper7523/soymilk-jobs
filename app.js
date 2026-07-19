@@ -575,7 +575,7 @@ async function fetchJobs() {
                 const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/);
                 if (match) {
                     const json = JSON.parse(match[1]);
-                    const cols = json.table.cols.map(c => c.label || c.id).filter(Boolean);
+                    const cols = json.table.cols.map(c => c.label || c.id || '');
                     
                     if (cols.length === 0) {
                         allJobs = [];
