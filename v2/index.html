@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>豆漿接案表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#f7f7f5;--card:#fff;--ink:#1a1a1a;--muted:#5c5c58;--faint:#a3a39c;--line:#e2e2de;--soft:#f0f0ed;--chip:#ebebe7;--hover:#f4f4f1;
+  --warn-bg:#fff4e5;--warn-ink:#8a4b00;--warn-line:#f0c893;
+  --stop-bg:#fdecec;--stop-ink:#9b1c1c;--stop-line:#f3b9b9;
+  --ok-bg:#eaf5ec;--ok-ink:#1c5e2e;--ok-line:#b8dcc2;
+  --btn:#1a1a1a;--btn-ink:#fff;--focus:#8a4b00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1b19;--card:#242422;--ink:#f2f2ee;--muted:#b3b3ac;--faint:#6f6f68;--line:#3a3a36;--soft:#2c2c29;--chip:#33332f;--hover:#2a2a27;
+    --warn-bg:#3a2a12;--warn-ink:#f2c27a;--warn-line:#6a4a1a;
+    --stop-bg:#3d1c1c;--stop-ink:#f3a6a6;--stop-line:#6a2a2a;
+    --ok-bg:#1c3324;--ok-ink:#9ad4ac;--ok-line:#2e5a3c;
+    --btn:#f2f2ee;--btn-ink:#1a1a1a;--focus:#f2c27a;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;font-size:14px;line-height:1.5;
+     padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.sr{position:absolute;left:-9999px}
+
+/* ── 版面 ── */
+.app{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
+.main{min-width:0;padding-block:16px 60px;padding-inline:16px;max-width:1240px;width:100%;margin:0 auto}
+@media (min-width:960px){
+  body.panel-open .app{grid-template-columns:minmax(0,1fr) 400px}
+}
+
+/* ── 標頭 ── */
+.hd{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.hd-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hd h1{font-size:22px;margin:0;line-height:1.25}
+.hd .ver{font-size:12px;color:var(--muted)}
+.hd-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:500;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn.primary:hover{opacity:.9}
+.btn.danger{color:var(--stop-ink);border-color:var(--stop-line)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.icon{width:40px;padding:0}
+.counts{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
+.counts span{padding:4px 10px;border-radius:999px;background:var(--chip);color:var(--ink);font-weight:600}
+.counts .c-stop{background:var(--stop-bg);color:var(--stop-ink)}
+.counts .c-ok{background:var(--ok-bg);color:var(--ok-ink)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tools input[type=search]{flex:1 1 200px;min-height:40px;border:1px solid var(--line);border-radius:9px;padding:0 12px;background:var(--card)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:12px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.banner{margin:10px 0 0;padding:10px 14px;border-radius:9px;font-size:12.5px;line-height:1.6;border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn-ink)}
+.banner.stop{border-color:var(--stop-line);background:var(--stop-bg);color:var(--stop-ink)}
+.banner b{font-weight:700}
+
+/* ── 區段 ── */
+.sec{margin-top:22px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 6px}
+.sec-h h2{font-size:15px;margin:0;font-weight:700}
+.sec-h h2 small{font-weight:400;color:var(--muted);margin-left:6px}
+.sec-h .hint{font-size:11.5px;color:var(--muted)}
+.list{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.empty{padding:14px 12px;color:var(--muted);font-size:13px}
+details.fold{margin-top:14px}
+details.fold summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13.5px}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold summary::after{content:"▸";color:var(--faint)}
+details.fold[open] summary::after{content:"▾"}
+details.fold[open] summary{border-radius:10px 10px 0 0}
+details.fold .list{border-top:none;border-radius:0 0 10px 10px}
+
+/* ── 列（手機） ── */
+.row{display:flex;gap:12px;padding:11px 12px;border-bottom:1px solid var(--soft);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;align-items:flex-start}
+.row:last-child{border-bottom:none}
+.row:hover{background:var(--hover)}
+.row.dim{opacity:.55}
+.k{flex:0 0 64px;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:8px;padding:6px 4px;font-size:11px;font-weight:700;line-height:1.25;min-height:36px;background:var(--chip);color:var(--ink)}
+.k.stop{background:var(--stop-bg);color:var(--stop-ink)}
+.k.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.k.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.k.none{background:var(--soft);color:var(--muted);border:1px dashed var(--line);font-weight:600}
+.k.date{font-size:12px;font-weight:600}
+.t{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.t .title{font-size:14.5px;font-weight:600;line-height:1.35}
+.t .sub{font-size:12px;color:var(--muted);line-height:1.45}
+.arrow{align-self:center;color:var(--faint);flex:0 0 auto}
+.tag{display:inline-block;padding:1px 7px;border-radius:999px;background:var(--chip);font-size:11px;font-weight:500;color:var(--muted);margin-left:6px;vertical-align:1px}
+.st{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;white-space:nowrap}
+.st-inquiry{background:var(--chip);color:var(--ink)} .st-scheduled{background:var(--ok-bg);color:var(--ok-ink)}
+.st-to_deliver,.st-to_publish{background:var(--warn-bg);color:var(--warn-ink)}
+.st-done{background:var(--btn);color:var(--btn-ink)} .st-declined{background:var(--stop-bg);color:var(--stop-ink)}
+.cell{display:none}
+
+/* ── 列（桌機） ── */
+@media (min-width:960px){
+  .thead{display:grid;grid-template-columns:96px minmax(0,1.6fr) 120px minmax(0,1.1fr) minmax(0,.9fr) 64px 76px;gap:10px;padding:7px 12px;background:var(--soft);font-size:11.5px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
+  .row{display:grid;grid-template-columns:96px minmax(0,1.6fr) 120px minmax(0,1.1fr) minmax(0,.9fr) 64px 76px;gap:10px;align-items:center;padding:8px 12px}
+  .k{flex:none;min-height:30px;padding:3px 6px}
+  .t .sub{display:none}
+  .arrow{display:none}
+  .cell{display:block;font-size:12.5px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cell.m{color:var(--muted)}
+}
+.thead{display:none}
+@media (min-width:960px){.thead{display:grid}}
+
+/* ── 側欄／表單 ── */
+.panel{display:none;background:var(--card);border-left:1px solid var(--line)}
+body.panel-open .panel{display:flex;flex-direction:column}
+@media (max-width:959px){
+  body.panel-open .panel{position:fixed;inset:0;z-index:20;border-left:none;overflow:auto;padding-top:env(safe-area-inset-top,0px)}
+  body.panel-open{overflow:hidden}
+}
+@media (min-width:960px){
+  .panel{position:sticky;top:0;height:100vh;overflow:auto}
+}
+.p-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 4px}
+.p-hd .btn{min-height:40px}
+.p-body{padding:4px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.p-title{font-size:19px;font-weight:700;line-height:1.3;margin:0}
+.p-meta{font-size:11.5px;color:var(--muted)}
+.steps{display:flex;gap:4px}
+.steps button{flex:1 1 0;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--faint);font-size:12px;padding:0 2px}
+.steps button.cur{background:var(--btn);color:var(--btn-ink);border-color:var(--btn);font-weight:700}
+.steps button.next{background:var(--card);color:var(--ink);border-color:var(--ink)}
+.steps button.done-past{color:var(--muted)}
+.fs{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px}
+.fs.hi{border-color:var(--warn-line);background:var(--warn-bg)}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f label{font-size:12px;color:var(--muted)}
+.f input,.f select,.f textarea{min-height:42px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--card);width:100%;min-width:0}
+.f textarea{padding:8px 10px;min-height:70px;resize:vertical;line-height:1.5}
+.f input.dashed,.f textarea.dashed{border-style:dashed}
+.f .help{font-size:11.5px;color:var(--muted)}
+.f2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.f3{display:grid;grid-template-columns:3fr 2fr;gap:10px}
+.seg{display:flex;gap:4px}
+.seg button{flex:1 1 0;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn);font-weight:600}
+.p-actions{display:flex;gap:8px;margin-top:4px}
+.p-actions .btn{min-height:46px;flex:1 1 0}
+.p-actions .btn.danger{flex:0 0 auto}
+.link-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.link-row a{color:var(--warn-ink)}
+#f-raw{min-height:110px}
+.panel.new #fs-raw{order:-1}
+details.rawfold summary{cursor:pointer;font-size:12.5px;color:var(--muted);list-style:none}
+details.rawfold summary::-webkit-details-marker{display:none}
+details.rawfold summary::after{content:" ▸"} details.rawfold[open] summary::after{content:" ▾"}
+
+/* ── 對話框 ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:16px}
+.overlay.show{display:flex}
+.modal{background:var(--card);border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.modal h2{margin:0;font-size:17px}
+.modal .help{font-size:12.5px;color:var(--muted);line-height:1.6}
+.modal code{font-size:12px;background:var(--soft);padding:1px 5px;border-radius:4px}
+
+/* ── toast ── */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:9px;font-size:13px;opacity:0;transition:.25s;z-index:40;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.warn{background:var(--warn-ink);color:#fff}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+footer{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.8}
+.loading{padding:40px 0;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+<main class="main">
+  <header class="hd">
+    <div class="hd-top">
+      <div>
+        <h1>豆漿接案表</h1>
+        <div class="ver"><span id="today"></span> · <span id="ver"></span></div>
+      </div>
+      <div class="hd-actions">
+        <button class="btn icon" id="btn-settings" type="button" aria-label="設定" title="設定">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button class="btn icon" id="btn-reload" type="button" aria-label="重新讀取" title="重新讀取">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73"></path></svg>
+        </button>
+        <button class="btn primary" id="btn-add" type="button">＋ 新增</button>
+      </div>
+    </div>
+    <div class="counts" id="counts"></div>
+    <div class="tools">
+      <label class="sr" for="q">搜尋</label>
+      <input type="search" id="q" placeholder="搜案名、窗口、地點、訊息內容">
+      <div class="chips" id="chips-source"></div>
+      <div class="chips" id="chips-pay"></div>
+    </div>
+    <div class="chips" id="chips-tag"></div>
+    <div id="banner"></div>
+  </header>
+
+  <div id="board"><div class="loading">讀取中…</div></div>
+
+  <footer>
+    <div>資料來源：Google 試算表 <span id="foot-src"></span>。頁面只是一張表，資料都在試算表裡。</div>
+    <div>豆漿接案表 <span id="foot-ver"></span></div>
+  </footer>
+</main>
+
+<!-- 側欄／全螢幕表單 -->
+<aside class="panel" id="panel" aria-label="案件">
+  <div class="p-hd">
+    <button class="btn" id="p-close" type="button">‹ 回列表</button>
+    <button class="btn danger" id="p-decline" type="button">婉拒這案</button>
+  </div>
+  <form class="p-body" id="form" autocomplete="off">
+    <input type="hidden" id="f-id">
+    <div class="f">
+      <label for="f-title">案件名稱 <span style="color:var(--stop-ink)">*</span></label>
+      <input id="f-title" type="text" placeholder="品牌或店名就好" required>
+    </div>
+    <div class="p-meta" id="p-meta"></div>
+
+    <div class="fs">
+      <div class="f"><label>狀態 · 點下一格就往前走</label>
+        <div class="steps" id="steps"></div>
+        <input type="hidden" id="f-status" value="inquiry">
+      </div>
+    </div>
+
+    <div class="fs" id="fs-raw">
+      <div class="f">
+        <label for="f-raw" id="f-raw-label">原始訊息（廠商貼來的整段）</label>
+        <textarea id="f-raw" placeholder="LINE 或 IG 私訊，整段貼就好。地址、時間、條件之後再拆。"></textarea>
+        <div class="help" id="f-raw-help"></div>
+      </div>
+    </div>
+
+    <div class="fs">
+      <div class="f2">
+        <div class="f"><label>來源</label>
+          <div class="seg" data-seg="f-source">
+            <button type="button" data-v="邀約">邀約</button>
+            <button type="button" data-v="報名">報名</button>
+          </div>
+          <input type="hidden" id="f-source" value="邀約">
+        </div>
+        <div class="f"><label for="f-tag">類型</label>
+          <input id="f-tag" type="text" list="tag-list" placeholder="KOC、探店、拍攝…">
+          <datalist id="tag-list"></datalist>
+        </div>
+      </div>
+      <div class="f3">
+        <div class="f"><label for="f-day">拍攝日期</label><input id="f-day" type="date"></div>
+        <div class="f"><label for="f-ttype">時段</label>
+          <select id="f-ttype"><option value="all">全天</option><option value="half">半天</option><option value="time">幾點</option></select>
+        </div>
+      </div>
+      <div class="f" id="f-time-wrap" hidden><label for="f-time">幾點</label><input id="f-time" type="time"></div>
+      <div class="f"><label for="f-location" id="f-location-label">地點</label><input id="f-location" type="text" placeholder="地址或店名"><div class="link-row" id="f-location-links"></div></div>
+      <div class="f"><label for="f-contact">窗口</label><input id="f-contact" type="text" placeholder="IG @帳號、LINE ID 或名字"><div class="link-row" id="f-contact-links"></div></div>
+    </div>
+
+    <div class="fs">
+      <div class="f"><label>報酬</label>
+        <div class="seg" data-seg="f-pay-type">
+          <button type="button" data-v="有酬">有酬</button>
+          <button type="button" data-v="互惠">互惠</button>
+          <button type="button" data-v="兩者">兩者</button>
+          <button type="button" data-v="未定">未定</button>
+        </div>
+        <input type="hidden" id="f-pay-type" value="未定">
+      </div>
+      <div class="f2">
+        <div class="f"><label for="f-pay-amount">金額</label><input id="f-pay-amount" type="number" inputmode="numeric" placeholder="2000"></div>
+        <div class="f"><label for="f-deliverable">要交什麼</label><input id="f-deliverable" type="text" placeholder="Reels 1 支＋限動 1 則"></div>
+      </div>
+    </div>
+
+    <div class="fs hi">
+      <div class="f2">
+        <div class="f"><label for="f-due-deliver">交件期限</label><input id="f-due-deliver" type="date" class="dashed"></div>
+        <div class="f"><label for="f-due-publish">發文期限</label><input id="f-due-publish" type="date" class="dashed"></div>
+      </div>
+      <div class="f"><label for="f-post-url">發文連結</label><input id="f-post-url" type="url" class="dashed" placeholder="貼上連結就自動結案"><div class="link-row" id="f-post-links"></div></div>
+    </div>
+
+    <div class="fs">
+      <div class="f"><label for="f-note">備註（自己的話）</label><textarea id="f-note" placeholder="例如：要帶素顏、停車在對面"></textarea></div>
+      <div class="link-row" id="f-pdf"></div>
+    </div>
+
+    <div class="p-actions">
+      <button class="btn primary" id="p-save" type="submit">儲存</button>
+    </div>
+    <div class="help" id="p-save-help" style="font-size:11.5px;color:var(--muted)"></div>
+  </form>
+</aside>
+</div>
+
+<!-- 設定 -->
+<div class="overlay" id="settings">
+  <div class="modal" role="dialog" aria-labelledby="settings-title">
+    <h2 id="settings-title">設定</h2>
+    <div class="f"><label for="s-me">我是誰（寫進「誰改的」欄）</label>
+      <select id="s-me"><option value="豆漿">豆漿</option><option value="簡">簡</option></select>
+    </div>
+    <div class="f"><label for="s-sheet">Google 試算表 ID</label>
+      <input id="s-sheet" type="text" placeholder="網址裡 d/ 和 /edit 中間那串">
+      <div class="help">跟舊版共用同一個，設過就會自動帶入。</div>
+    </div>
+    <div class="f"><label for="s-gas">Apps Script v2 網址</label>
+      <input id="s-gas" type="text" placeholder="https://script.google.com/macros/s/…/exec">
+      <div class="help">留空就是唯讀。管理員會給你一條設定連結，點了自動填好。</div>
+    </div>
+    <div class="p-actions">
+      <button class="btn" id="s-cancel" type="button">取消</button>
+      <button class="btn primary" id="s-save" type="button">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   豆漿接案表 v2 — 單檔前台
+   資料：Google 試算表（讀：gviz；寫：Apps Script v2）
+   ============================================================ */
+const VERSION = 'v2.0.0-preview';
+const TAB = 'v2';
+const HEADERS = ['id','title','status','source','tag','shoot_date','location','contact','pay_type','pay_amount','deliverable','due_deliver','due_publish','post_url','raw_message','note','pdf_url','created_at','updated_at','updated_by'];
+const STATUS = [
+  {k:'inquiry',    label:'邀約中'},
+  {k:'scheduled',  label:'待拍'},
+  {k:'to_deliver', label:'待交'},
+  {k:'to_publish', label:'待發'},
+  {k:'done',       label:'結案'},
+  {k:'declined',   label:'婉拒'},
+];
+const SLABEL = Object.fromEntries(STATUS.map(s=>[s.k,s.label]));
+const SKEY = Object.fromEntries(STATUS.map(s=>[s.label,s.k]));
+const WD = ['日','一','二','三','四','五','六'];
+
+const ls = {
+  get(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+const S = {
+  sheetId: ls.get('sheet_id'),
+  gasUrl: ls.get('gas_v2_url'),
+  me: ls.get('sjh_me') || '豆漿',
+  mode: 'v2',           // 'v2' | 'v1'（唯讀預覽）
+  jobs: [],
+  q: '',
+  fSource: ls.get('sjh_f_source') || '全部',
+  fPay: ls.get('sjh_f_pay') || '全部',
+  fTag: ls.get('sjh_f_tag') || '全部',
+  openId: null,
+  isNew: false,
+};
+
+/* ---------- 一鍵設定連結 #s=&g=&me= ---------- */
+(function applySetupLink(){
+  const h = location.hash;
+  if(!h || !/[sg]=|me=/.test(h)) return;
+  try{
+    const p = new URLSearchParams(h.slice(1));
+    if(p.get('s')){ S.sheetId = p.get('s'); ls.set('sheet_id', S.sheetId); }
+    if(p.get('g')){ const g = p.get('g'); S.gasUrl = g.startsWith('https://') ? g : `https://script.google.com/macros/s/${g}/exec`; ls.set('gas_v2_url', S.gasUrl); }
+    if(p.get('me')){ S.me = p.get('me'); ls.set('sjh_me', S.me); }
+    history.replaceState(null,'',location.pathname+location.search);
+    setTimeout(()=>toast('設定完成'),300);
+  }catch(e){}
+})();
+
+/* ---------- 工具 ---------- */
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const pad = n => String(n).padStart(2,'0');
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`; }
+function nowStr(){ const d=new Date(); return `${todayStr()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+
+/* 日期字串 → 結構。接受 YYYY/MM/DD [HH:mm|全天|半天]、YYYY-MM-DD…、gviz Date(...) 、ISO */
+function parseDate(v){
+  if(!v) return null;
+  let s = String(v).trim();
+  let m = s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/);
+  if(m) return {y:+m[1], mo:+m[2]+1, d:+m[3], hh:m[4]!=null?+m[4]:null, mm:m[5]!=null?+m[5]:null, kind:m[4]!=null?'time':'none'};
+  m = s.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[T\s]+(.*))?$/);
+  if(!m) return null;
+  const r = {y:+m[1], mo:+m[2], d:+m[3], hh:null, mm:null, kind:'none'};
+  const rest = (m[4]||'').trim();
+  if(rest==='全天') r.kind='all';
+  else if(rest==='半天') r.kind='half';
+  else { const t = rest.match(/^(\d{1,2}):(\d{2})/); if(t){ r.hh=+t[1]; r.mm=+t[2]; r.kind='time'; } }
+  return r;
+}
+function fmtDate(v, opt={}){ // 顯示用：M/D（週）HH:mm
+  const p = parseDate(v); if(!p) return '';
+  const wd = new Date(p.y,p.mo-1,p.d).getDay();
+  let s = `${p.mo}/${p.d}`;
+  if(opt.wd!==false) s += `（${WD[wd]}）`;
+  if(p.kind==='time') s += ` ${pad(p.hh)}:${pad(p.mm)}`;
+  else if(p.kind==='all') s += ' 全天';
+  else if(p.kind==='half') s += ' 半天';
+  return s;
+}
+function fmtDateTime(v){ const p=parseDate(v); if(!p) return ''; return `${p.mo}/${p.d}` + (p.kind==='time'?` ${pad(p.hh)}:${pad(p.mm)}`:''); }
+function normDate(v){ // 存回試算表用：YYYY/MM/DD [HH:mm|全天|半天]
+  const p = parseDate(v); if(!p) return '';
+  let s = `${p.y}/${pad(p.mo)}/${pad(p.d)}`;
+  if(p.kind==='time') s += ` ${pad(p.hh)}:${pad(p.mm)}`;
+  else if(p.kind==='all') s += ' 全天';
+  else if(p.kind==='half') s += ' 半天';
+  return s;
+}
+function sortKey(v){ const p=parseDate(v); if(!p) return ''; const t = p.kind==='time'?`${pad(p.hh)}:${pad(p.mm)}`:(p.kind==='half'?'12:00':'00:00'); return `${p.y}-${pad(p.mo)}-${pad(p.d)} ${t}`; }
+function daysUntil(v){ const p=parseDate(v); if(!p) return null; const a=new Date(); a.setHours(0,0,0,0); const b=new Date(p.y,p.mo-1,p.d); return Math.round((b-a)/86400000); }
+function toInputDate(v){ const p=parseDate(v); if(!p) return ''; return `${p.y}-${pad(p.mo)}-${pad(p.d)}`; }
+
+function toast(msg, warn){ const t=$('#toast'); t.textContent=msg; t.className='toast show'+(warn?' warn':''); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2800); }
+
+/* ---------- 讀取試算表 ---------- */
+async function gviz(tab){
+  if(!S.sheetId) throw new Error('no-sheet');
+  let url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(S.sheetId)}/gviz/tq?tqx=out:json&headers=1&_=${Date.now()}`;
+  if(tab) url += `&sheet=${encodeURIComponent(tab)}`;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('http '+r.status);
+  const text = await r.text();
+  const m = text.match(/setResponse\(([\s\S]*?)\);?\s*$/);
+  if(!m) throw new Error('parse');
+  const j = JSON.parse(m[1]);
+  if(j.status!=='ok' || !j.table) throw new Error('gviz '+(j.errors&&j.errors[0]&&j.errors[0].reason||'error'));
+  const cols = j.table.cols.map(c=>String(c.label||c.id||'').trim());
+  const rows = j.table.rows.map(row=>{
+    const o = {};
+    row.c.forEach((cell,i)=>{ const h=cols[i]; if(!h) return; o[h] = (cell && cell.v!=null) ? String(cell.v) : ''; });
+    return o;
+  });
+  return {cols, rows};
+}
+
+async function load(){
+  $('#board').innerHTML = '<div class="loading">讀取中…</div>';
+  if(!S.sheetId){ $('#board').innerHTML=''; setBanner('還沒設定試算表。點右上角齒輪，或用管理員給的設定連結。','stop'); return; }
+  try{
+    let data;
+    try{ data = await gviz(TAB); if(!data.cols.includes('id')) throw new Error('not-v2'); S.mode='v2'; }
+    catch(e){ data = await gviz(''); S.mode='v1'; }
+    S.jobs = (S.mode==='v2') ? data.rows.filter(r=>r.id).map(fromV2) : data.rows.filter(r=>r.filename||r.title).map(fromV1);
+    S.jobs.forEach(j=>{ HEADERS.forEach(h=>{ if(j[h]==null) j[h]=''; }); });
+    render();
+  }catch(e){
+    console.error(e);
+    $('#board').innerHTML='';
+    setBanner('讀不到試算表：'+esc(e.message)+'。確認試算表 ID，或試算表有沒有開「知道連結的人可檢視」。','stop');
+  }
+}
+
+function fromV2(r){
+  const j = {...r};
+  if(!SLABEL[j.status]) j.status = SKEY[j.status] || 'inquiry';
+  ['shoot_date','due_deliver','due_publish','created_at','updated_at'].forEach(k=>{ if(j[k]) j[k]=normDate(j[k]); });
+  return j;
+}
+
+/* v1 → v2 換算（唯讀預覽用，不會寫回去） */
+function fromV1(r){
+  const j = {}; HEADERS.forEach(h=>j[h]='');
+  j.id = r.filename || ('v1_'+Math.random().toString(36).slice(2,8));
+  j.title = r.title || r.filename || '';
+  const shoot = r.shoot_date ? normDate(r.shoot_date) : '';
+  const st = r.status || 'pending';
+  if(st==='pending') j.status='inquiry';
+  else if(st==='in_progress'){ const d = shoot?daysUntil(shoot):null; j.status = (d!=null && d<0) ? 'to_deliver' : 'scheduled'; }
+  else if(st==='confirmed') j.status='done';
+  else j.status='declined';
+  j.source = /\.pdf$/i.test(r.filename||'') ? '報名' : '邀約';
+  j.tag = (r.tag && r.tag!=='一般') ? r.tag : '';
+  j.shoot_date = shoot;
+  j.contact = r.contact || '';
+  const comp = String(r.compensation||'').trim();
+  const num = comp.replace(/,/g,'').match(/\d+(\.\d+)?/);
+  const mutual = /互惠|無酬|免費/.test(comp);
+  if(num && mutual) j.pay_type='兩者'; else if(num) j.pay_type='有酬'; else if(mutual) j.pay_type='互惠'; else j.pay_type='未定';
+  j.pay_amount = num ? num[0] : '';
+  if(comp && !num && !mutual) j.note = '報酬（原文）：'+comp;
+  else if(comp && num && comp.replace(/[\d,\s$元NT.]/g,'').replace(/互惠|有酬|邀約|｜|\|/g,'')) j.note = '報酬（原文）：'+comp;
+  j.deliverable = r.platform || '';
+  j.raw_message = r.note || '';
+  j.location = extractAddress(j.raw_message);
+  j.pdf_url = r.pdf_url || '';
+  j.created_at = r.created_at ? normDate(r.created_at) : '';
+  j.updated_at = '';
+  j.updated_by = '';
+  return j;
+}
+function extractAddress(t){
+  if(!t) return '';
+  const m = String(t).match(/((?:臺|台)(?:北|中|南|東)市|(?:新北|桃園|新竹|嘉義|基隆|高雄)市|(?:新竹|苗栗|彰化|南投|雲林|嘉義|屏東|宜蘭|花蓮|臺東|台東|金門|澎湖)縣)[^\n\r,，。;；:：（）()\[\]]{2,40}?(?:號(?:之\d+)?(?:[\s,，]?\d+樓(?:之\d+)?)?|樓)/);
+  return m ? m[0].trim() : '';
+}
+
+/* ---------- 篩選、分組、排序 ---------- */
+function visible(){
+  const q = S.q.trim().toLowerCase();
+  return S.jobs.filter(j=>{
+    if(S.fSource!=='全部' && j.source!==S.fSource) return false;
+    if(S.fPay==='有酬' && !(j.pay_type==='有酬'||j.pay_type==='兩者')) return false;
+    if(S.fPay==='互惠' && !(j.pay_type==='互惠'||j.pay_type==='兩者')) return false;
+    if(S.fTag!=='全部' && j.tag!==S.fTag) return false;
+    if(q){ const hay = [j.title,j.contact,j.location,j.tag,j.raw_message,j.note,j.deliverable].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+}
+function dueOf(j){ return j.due_deliver || j.due_publish || ''; }
+function bySortKey(get, dir=1){ return (a,b)=>{ const ka=sortKey(get(a)), kb=sortKey(get(b)); if(!ka&&!kb) return 0; if(!ka) return 1; if(!kb) return -1; return dir*ka.localeCompare(kb); }; }
+
+/* ---------- 畫面 ---------- */
+function setBanner(html, cls){ const b=$('#banner'); b.innerHTML = html ? `<div class="banner ${cls||''}">${html}</div>` : ''; }
+
+function render(){
+  const all = S.jobs;
+  const vis = visible();
+  const g = {to_do: [], shoot: [], inquiry: [], done: [], declined: []};
+  vis.forEach(j=>{
+    if(j.status==='to_deliver'||j.status==='to_publish') g.to_do.push(j);
+    else if(j.status==='scheduled') g.shoot.push(j);
+    else if(j.status==='inquiry') g.inquiry.push(j);
+    else if(j.status==='done') g.done.push(j);
+    else g.declined.push(j);
+  });
+  g.to_do.sort(bySortKey(dueOf,1));
+  g.shoot.sort(bySortKey(j=>j.shoot_date,1));
+  g.inquiry.sort(bySortKey(j=>j.created_at,-1));
+  g.done.sort(bySortKey(j=>j.updated_at||j.shoot_date||j.created_at,-1));
+  g.declined.sort(bySortKey(j=>j.updated_at||j.created_at,-1));
+
+  const cAll = {to_do:0,shoot:0,inquiry:0};
+  all.forEach(j=>{ if(j.status==='to_deliver'||j.status==='to_publish') cAll.to_do++; else if(j.status==='scheduled') cAll.shoot++; else if(j.status==='inquiry') cAll.inquiry++; });
+  $('#counts').innerHTML = `<span class="c-stop">要交 ${cAll.to_do}</span><span class="c-ok">要拍 ${cAll.shoot}</span><span>邀約中 ${cAll.inquiry}</span><span style="background:transparent;color:var(--muted);font-weight:400">共 ${all.length} 案</span>`;
+
+  if(S.mode==='v1'){
+    setBanner(`<b>唯讀預覽。</b>資料是從舊版試算表即時換算來的（狀態、報酬、地點都是猜的），還沒搬家，所以不能存。要能存：跑一次搬家、部署 Apps Script v2、再點設定連結。`, '');
+  } else if(!S.gasUrl){
+    setBanner(`<b>唯讀。</b>還沒設定 Apps Script v2 網址，點齒輪填，或用管理員給的設定連結。`, '');
+  } else setBanner('');
+
+  const thead = (c3,c4)=>`<div class="thead"><div>期限</div><div>案件</div><div>${c3}</div><div>${c4}</div><div>窗口</div><div>報酬</div><div>狀態</div></div>`;
+  let h = '';
+  h += section('要交的', g.to_do.length, '依期限，逾期排最上', thead('拍攝','要交什麼'), g.to_do.map(j=>row(j,'to_do')).join('') || '<div class="empty">沒有要交的。</div>');
+  h += section('接下來要拍', g.shoot.length, '依拍攝日期', thead('拍攝','要交什麼'), g.shoot.map(j=>row(j,'shoot')).join('') || '<div class="empty">還沒有排定日期的拍攝。填了拍攝日期的案子會自動出現在這裡。</div>');
+  h += section('邀約中', g.inquiry.length, '最新收到的在上，超過 30 天變灰', thead('收到','來源／類型'), g.inquiry.map(j=>row(j,'inquiry')).join('') || '<div class="empty">沒有。</div>');
+  h += fold('結案', g.done.length, thead('拍攝','要交什麼'), g.done.map(j=>row(j,'done')).join('') || '<div class="empty">沒有。</div>');
+  h += fold('婉拒／沒下文', g.declined.length, thead('拍攝','要交什麼'), g.declined.map(j=>row(j,'declined')).join('') || '<div class="empty">沒有。</div>');
+  $('#board').innerHTML = h;
+
+  renderChips();
+  $('#foot-src').textContent = S.mode==='v2' ? `「${TAB}」分頁` : '舊版分頁（換算）';
+}
+function section(title, n, hint, thead, body){
+  return `<section class="sec"><div class="sec-h"><h2>${title}<small>${n}</small></h2><span class="hint">${hint}</span></div><div class="list">${thead}${body}</div></section>`;
+}
+function fold(title, n, thead, body){
+  return `<details class="fold"><summary><span>${title} ${n}</span></summary><div class="list">${thead}${body}</div></details>`;
+}
+
+function chipFor(j, kind){
+  if(kind==='to_do'){
+    const d = dueOf(j); if(!d) return `<div class="k none">期限<br>未填</div>`;
+    const n = daysUntil(d);
+    if(n<0) return `<div class="k stop">逾期<br>${-n} 天</div>`;
+    if(n===0) return `<div class="k stop">今天<br>到期</div>`;
+    if(n<=3) return `<div class="k warn">剩<br>${n} 天</div>`;
+    return `<div class="k ok date">${fmtDateTime(d)}<br>前</div>`;
+  }
+  if(kind==='shoot'){
+    if(!j.shoot_date) return `<div class="k none">日期<br>未填</div>`;
+    const n = daysUntil(j.shoot_date);
+    if(n<0) return `<div class="k warn">拍了嗎？</div>`;
+    if(n===0) return `<div class="k stop">今天</div>`;
+    const p = parseDate(j.shoot_date);
+    return `<div class="k ok date">${p.mo}/${p.d}<br>週${WD[new Date(p.y,p.mo-1,p.d).getDay()]}</div>`;
+  }
+  const c = j.created_at ? fmtDateTime(j.created_at).split(' ')[0] : '—';
+  return `<div class="k date">${esc(c)}</div>`;
+}
+function payText(j){ if(j.pay_type==='有酬'||j.pay_type==='兩者') return (j.pay_type==='兩者'?'互惠＋':'')+(j.pay_amount?'$'+j.pay_amount:'有酬'); if(j.pay_type==='互惠') return '互惠'; return '未定'; }
+function row(j, kind){
+  const dim = (kind==='inquiry' && j.created_at && daysUntil(j.created_at) < -30) ? ' dim' : '';
+  let sub = '';
+  if(kind==='to_do'){ const parts=[]; if(dueOf(j)) parts.push('期限 '+fmtDateTime(dueOf(j))); if(j.shoot_date) parts.push('拍 '+fmtDate(j.shoot_date)); if(j.deliverable) parts.push(j.deliverable); parts.push(payText(j)); sub = parts.join(' · '); }
+  else if(kind==='shoot'){ const parts=[]; if(j.shoot_date) parts.push(fmtDate(j.shoot_date)); if(j.location) parts.push(j.location); if(j.deliverable) parts.push(j.deliverable); sub = parts.join(' · '); }
+  else { const parts=[j.source||'', j.tag||'', payText(j)].filter(Boolean); if(j.contact) parts.push(j.contact); sub = parts.join(' · '); }
+  const c3 = (kind==='inquiry') ? (j.created_at?fmtDateTime(j.created_at):'—') : (j.shoot_date?fmtDate(j.shoot_date):'—');
+  const c4 = (kind==='inquiry') ? [j.source,j.tag].filter(Boolean).join('／') : (j.deliverable||'—');
+  return `<button type="button" class="row${dim}" data-id="${esc(j.id)}">
+    ${chipFor(j,kind)}
+    <div class="t"><div class="title">${esc(j.title)}${j.tag&&kind!=='inquiry'?`<span class="tag">${esc(j.tag)}</span>`:''}</div><div class="sub">${esc(sub)}</div></div>
+    <div class="cell${c3==='—'?' m':''}">${esc(c3)}</div>
+    <div class="cell${c4==='—'?' m':''}">${esc(c4)}</div>
+    <div class="cell${j.contact?'':' m'}">${esc(j.contact||'—')}</div>
+    <div class="cell">${esc(payText(j))}</div>
+    <div class="cell"><span class="st st-${j.status}">${SLABEL[j.status]}</span></div>
+    <div class="arrow">›</div>
+  </button>`;
+}
+
+function renderChips(){
+  const mk = (el, opts, cur, key)=>{ el.innerHTML = opts.map(o=>`<button type="button" class="chip" data-k="${key}" data-v="${esc(o)}" aria-pressed="${o===cur}">${esc(o)}</button>`).join(''); };
+  mk($('#chips-source'), ['全部','邀約','報名'], S.fSource, 'fSource');
+  mk($('#chips-pay'), ['全部','有酬','互惠'], S.fPay, 'fPay');
+  const tags = {}; S.jobs.forEach(j=>{ if(j.tag) tags[j.tag]=(tags[j.tag]||0)+1; });
+  const top = Object.entries(tags).sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
+  mk($('#chips-tag'), ['全部',...top], S.fTag, 'fTag');
+  $('#tag-list').innerHTML = Object.keys(tags).sort().map(t=>`<option value="${esc(t)}"></option>`).join('');
+}
+
+/* ---------- 側欄 ---------- */
+function openJob(id){
+  const j = S.jobs.find(x=>x.id===id); if(!j) return;
+  S.openId = id; S.isNew = false;
+  fillForm(j);
+  document.body.classList.add('panel-open'); $('#panel').classList.remove('new');
+  $('#panel').scrollTop = 0; $('#f-title').focus({preventScroll:true});
+}
+function openNew(){
+  S.openId = null; S.isNew = true;
+  const j = {}; HEADERS.forEach(h=>j[h]=''); j.status='inquiry'; j.source='邀約'; j.pay_type='未定';
+  fillForm(j);
+  document.body.classList.add('panel-open'); $('#panel').classList.add('new');
+  $('#panel').scrollTop = 0; $('#f-raw').focus({preventScroll:true});
+}
+function closePanel(){ document.body.classList.remove('panel-open'); S.openId=null; S.isNew=false; }
+
+function fillForm(j){
+  $('#f-id').value = j.id||'';
+  $('#f-title').value = j.title||'';
+  setStatus(j.status||'inquiry');
+  setSeg('f-source', j.source||'邀約');
+  $('#f-tag').value = j.tag||'';
+  const p = parseDate(j.shoot_date);
+  $('#f-day').value = p ? toInputDate(j.shoot_date) : '';
+  $('#f-ttype').value = p ? (p.kind==='time'?'time':(p.kind==='half'?'half':'all')) : 'all';
+  $('#f-time').value = (p && p.kind==='time') ? `${pad(p.hh)}:${pad(p.mm)}` : '';
+  $('#f-time-wrap').hidden = $('#f-ttype').value!=='time';
+  $('#f-location').value = j.location||'';
+  $('#f-location-label').textContent = (S.mode==='v1' && j.location) ? '地點（從訊息裡自動抓的）' : '地點';
+  $('#f-contact').value = j.contact||'';
+  setSeg('f-pay-type', j.pay_type||'未定');
+  $('#f-pay-amount').value = j.pay_amount||'';
+  $('#f-deliverable').value = j.deliverable||'';
+  $('#f-due-deliver').value = toInputDate(j.due_deliver);
+  $('#f-due-publish').value = toInputDate(j.due_publish);
+  $('#f-post-url').value = j.post_url||'';
+  $('#f-raw').value = j.raw_message||'';
+  $('#f-note').value = j.note||'';
+  $('#f-raw-help').textContent = S.isNew ? '這是唯一一定要貼的。下面欄位都可以之後再補。' : '';
+  $('#f-pdf').innerHTML = j.pdf_url ? `<a href="${esc(j.pdf_url)}" target="_blank" rel="noopener">舊版附件 PDF ↗</a>` : '';
+  const meta = [];
+  if(j.created_at) meta.push('收到 '+j.created_at);
+  if(j.updated_at) meta.push('更新 '+j.updated_at+(j.updated_by?' · '+j.updated_by:''));
+  if(j.id && !S.isNew) meta.push(j.id);
+  $('#p-meta').textContent = meta.join(' · ');
+  $('#p-decline').hidden = S.isNew || j.status==='declined';
+  updateLinks();
+  const ro = !canWrite();
+  $('#p-save').disabled = ro;
+  $('#p-save-help').textContent = ro ? (S.mode==='v1' ? '唯讀預覽，還不能存。' : '還沒設定 Apps Script v2 網址，不能存。') : (S.isNew ? '按下去直接寫進試算表，等試算表回應才會出現在列表。' : '');
+}
+function canWrite(){ return S.mode==='v2' && !!S.gasUrl; }
+function setSeg(id, v){ $('#'+id).value = v; $$(`[data-seg="${id}"] button`).forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===v))); }
+function setStatus(k){
+  $('#f-status').value = k;
+  const idx = STATUS.findIndex(s=>s.k===k);
+  $('#steps').innerHTML = STATUS.slice(0,5).map((s,i)=>{
+    const cls = s.k===k ? 'cur' : (i===idx+1 ? 'next' : (i<idx ? 'done-past' : ''));
+    return `<button type="button" class="${cls}" data-st="${s.k}" ${s.k===k?'aria-current="step"':''}>${s.label}</button>`;
+  }).join('') + (k==='declined' ? `<button type="button" class="cur" data-st="declined" aria-current="step">婉拒</button>` : '');
+}
+function linkify(v, kind){
+  v = String(v||'').trim(); if(!v) return '';
+  if(/^https?:\/\//i.test(v)) return `<a href="${esc(v)}" target="_blank" rel="noopener">開啟連結 ↗</a>`;
+  if(kind==='contact'){
+    const m = v.match(/@([A-Za-z0-9._]+)/);
+    if(m) return `<a href="https://www.instagram.com/${esc(m[1])}/" target="_blank" rel="noopener">開 IG @${esc(m[1])} ↗</a>`;
+  }
+  if(kind==='location') return `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}" target="_blank" rel="noopener">Google 地圖 ↗</a>`;
+  return '';
+}
+function updateLinks(){
+  $('#f-location-links').innerHTML = linkify($('#f-location').value,'location');
+  $('#f-contact-links').innerHTML = linkify($('#f-contact').value,'contact');
+  $('#f-post-links').innerHTML = linkify($('#f-post-url').value,'url');
+}
+function readForm(){
+  const j = {}; HEADERS.forEach(h=>j[h]='');
+  const old = S.openId ? S.jobs.find(x=>x.id===S.openId) : null;
+  if(old) Object.assign(j, old);
+  j.id = $('#f-id').value.trim();
+  j.title = $('#f-title').value.trim();
+  j.status = $('#f-status').value;
+  j.source = $('#f-source').value;
+  j.tag = $('#f-tag').value.trim();
+  const day = $('#f-day').value, tt = $('#f-ttype').value, tm = $('#f-time').value;
+  j.shoot_date = day ? (day.replace(/-/g,'/') + (tt==='time' ? ' '+(tm||'00:00') : (tt==='half'?' 半天':' 全天'))) : '';
+  j.location = $('#f-location').value.trim();
+  j.contact = $('#f-contact').value.trim();
+  j.pay_type = $('#f-pay-type').value;
+  j.pay_amount = $('#f-pay-amount').value.trim();
+  j.deliverable = $('#f-deliverable').value.trim();
+  j.due_deliver = $('#f-due-deliver').value.replace(/-/g,'/');
+  j.due_publish = $('#f-due-publish').value.replace(/-/g,'/');
+  j.post_url = $('#f-post-url').value.trim();
+  j.raw_message = $('#f-raw').value;
+  j.note = $('#f-note').value.trim();
+  // 規則：貼了發文連結就結案；邀約中填了拍攝日期就進待拍
+  if(j.post_url && j.status!=='declined') j.status='done';
+  if(j.status==='inquiry' && j.shoot_date) j.status='scheduled';
+  if(!j.title) j.title = (j.raw_message||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)[0]?.slice(0,30) || '';
+  return j;
+}
+
+/* ---------- 寫入（Apps Script v2） ---------- */
+async function gasPost(payload){
+  const r = await fetch(S.gasUrl, {method:'POST', body: JSON.stringify(payload), redirect:'follow'});
+  let out = null;
+  try{ out = await r.json(); }catch(e){}
+  return out;
+}
+async function save(){
+  if(!canWrite()) return;
+  const j = readForm();
+  if(!j.title){ toast('至少要有案件名稱', true); $('#f-title').focus(); return; }
+  const btn = $('#p-save'); btn.disabled = true; btn.textContent = '寫入中…';
+  const isNew = S.isNew;
+  const payload = { action: isNew ? 'add' : 'update', who: S.me, job: j };
+  let res = null;
+  try{ res = await gasPost(payload); }catch(e){ console.warn('gas', e); }
+  // 以試算表為準：重讀，確認有寫進去
+  await new Promise(r=>setTimeout(r, 900));
+  await load();
+  const idNow = (res && res.id) || j.id;
+  const found = idNow && S.jobs.find(x=>x.id===idNow);
+  const foundByTitle = isNew && !found && S.jobs.find(x=>x.title===j.title && x.raw_message===j.raw_message);
+  btn.disabled = false; btn.textContent = '儲存';
+  if(found || foundByTitle){
+    toast(isNew ? '已新增，寫進試算表了' : '已儲存');
+    if(isNew){ closePanel(); } else { const k = (found||foundByTitle).id; openJob(k); }
+  } else {
+    toast('試算表還沒看到這筆。等幾秒再按重新讀取；還是沒有就是 Apps Script 沒收到。', true);
+  }
+}
+
+/* ---------- 事件 ---------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  $('#today').textContent = '今天 '+fmtDate(todayStr());
+  $('#ver').textContent = VERSION; $('#foot-ver').textContent = VERSION;
+
+  $('#board').addEventListener('click', e=>{ const r=e.target.closest('.row'); if(r) openJob(r.dataset.id); });
+  $('#btn-add').addEventListener('click', ()=>{ if(!S.sheetId){ openSettings(); return; } openNew(); });
+  $('#btn-reload').addEventListener('click', ()=>load().then(()=>toast('已重新讀取')));
+  $('#btn-settings').addEventListener('click', openSettings);
+  $('#p-close').addEventListener('click', closePanel);
+  $('#p-decline').addEventListener('click', ()=>{ setStatus('declined'); if(canWrite()) save(); });
+  $('#form').addEventListener('submit', e=>{ e.preventDefault(); save(); });
+  $('#steps').addEventListener('click', e=>{ const b=e.target.closest('button[data-st]'); if(b) setStatus(b.dataset.st); });
+  $$('.seg').forEach(seg=>seg.addEventListener('click', e=>{ const b=e.target.closest('button[data-v]'); if(b) setSeg(seg.dataset.seg, b.dataset.v); }));
+  $('#f-ttype').addEventListener('change', ()=>{ $('#f-time-wrap').hidden = $('#f-ttype').value!=='time'; });
+  ['f-location','f-contact','f-post-url'].forEach(id=>$('#'+id).addEventListener('input', updateLinks));
+  $('#q').addEventListener('input', e=>{ S.q=e.target.value; render(); });
+  document.addEventListener('click', e=>{
+    const c = e.target.closest('.chip[data-k]'); if(!c) return;
+    S[c.dataset.k] = c.dataset.v; ls.set('sjh_'+c.dataset.k.replace('f','f_').toLowerCase(), c.dataset.v); render();
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('#settings').classList.contains('show')) closeSettings(); else if(document.body.classList.contains('panel-open')) closePanel(); } });
+
+  // 設定
+  $('#s-cancel').addEventListener('click', closeSettings);
+  $('#s-save').addEventListener('click', ()=>{
+    const sid = $('#s-sheet').value.trim(), g = $('#s-gas').value.trim();
+    if(sid && (sid.length<10 || /\s/.test(sid))){ toast('試算表 ID 看起來不對', true); return; }
+    if(g && !g.startsWith('https://script.google.com/')){ toast('Apps Script 網址要以 https://script.google.com/ 開頭', true); return; }
+    S.sheetId = sid; S.gasUrl = g; S.me = $('#s-me').value;
+    ls.set('sheet_id', sid); ls.set('gas_v2_url', g); ls.set('sjh_me', S.me);
+    closeSettings(); load();
+  });
+  $('#settings').addEventListener('click', e=>{ if(e.target.id==='settings') closeSettings(); });
+
+  load();
+});
+function openSettings(){ $('#s-sheet').value=S.sheetId; $('#s-gas').value=S.gasUrl; $('#s-me').value=S.me; $('#settings').classList.add('show'); $('#s-me').focus(); }
+function closeSettings(){ $('#settings').classList.remove('show'); }
+</script>
+</body>
+</html>
