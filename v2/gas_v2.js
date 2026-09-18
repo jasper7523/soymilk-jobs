@@ -11,6 +11,10 @@
  * 部署一次就不再動。之後改版只改前台 index.html。
  */
 
+// ★ 通行碼：在引號裡打一串你自己想的密碼（英數字都可以，不要有空格）。
+//   設定連結裡要帶同一串（&k=…）。留空就是不檢查，任何拿到部署網址的人都能讀寫。
+var KEY = '';
+
 var TAB = 'v2';
 var TZ = 'Asia/Taipei';
 var HEADERS = ['id','title','status','source','tag','shoot_date','location','contact','pay_type','pay_amount','deliverable','due_deliver','due_publish','post_url','raw_message','note','pdf_url','created_at','updated_at','updated_by'];
@@ -61,6 +65,8 @@ function newId_(sh){
 }
 
 function doGet(e){
+  // 有設通行碼就不開放 GET 讀取；讀取請走 POST get_all
+  if(KEY) return out_({ok:false, error:'use POST'});
   var sh = sheet_();
   return out_(readAll_(sh));
 }
@@ -71,6 +77,7 @@ function doPost(e){
   try{
     var body = JSON.parse(e.postData.contents || '{}');
     var action = body.action;
+    if(KEY && String(body.key || '') !== KEY) return out_({ok:false, error:'bad key'});
     var who = String(body.who || '');
     var job = body.job || {};
     var sh = sheet_();

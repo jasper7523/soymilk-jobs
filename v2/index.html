@@ -329,6 +329,10 @@ footer{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);color:v
       <input id="s-gas" type="text" placeholder="https://script.google.com/macros/s/…/exec">
       <div class="help">留空就是唯讀。管理員會給你一條設定連結，點了自動填好。</div>
     </div>
+    <div class="f"><label for="s-key">通行碼</label>
+      <input id="s-key" type="password" placeholder="管理員給的那串" autocomplete="off">
+      <div class="help">跟 Apps Script 裡設的同一串。沒對上就存不進去。</div>
+    </div>
     <div class="p-actions">
       <button class="btn" id="s-cancel" type="button">取消</button>
       <button class="btn primary" id="s-save" type="button">儲存</button>
@@ -365,6 +369,7 @@ const ls = {
 const S = {
   sheetId: ls.get('sheet_id'),
   gasUrl: ls.get('gas_v2_url'),
+  key: ls.get('sjh_key'),
   me: ls.get('sjh_me') || '豆漿',
   mode: 'v2',           // 'v2' | 'v1'（唯讀預覽）
   jobs: [],
@@ -379,11 +384,12 @@ const S = {
 /* ---------- 一鍵設定連結 #s=&g=&me= ---------- */
 (function applySetupLink(){
   const h = location.hash;
-  if(!h || !/[sg]=|me=/.test(h)) return;
+  if(!h || !/(^#|&)(s|g|k|me)=/.test(h)) return;
   try{
     const p = new URLSearchParams(h.slice(1));
     if(p.get('s')){ S.sheetId = p.get('s'); ls.set('sheet_id', S.sheetId); }
     if(p.get('g')){ const g = p.get('g'); S.gasUrl = g.startsWith('https://') ? g : `https://script.google.com/macros/s/${g}/exec`; ls.set('gas_v2_url', S.gasUrl); }
+    if(p.get('k')){ S.key = p.get('k'); ls.set('sjh_key', S.key); }
     if(p.get('me')){ S.me = p.get('me'); ls.set('sjh_me', S.me); }
     history.replaceState(null,'',location.pathname+location.search);
     setTimeout(()=>toast('設定完成'),300);
@@ -465,7 +471,16 @@ async function load(){
   try{
     let data;
     try{ data = await gviz(TAB); if(!data.cols.includes('id')) throw new Error('not-v2'); S.mode='v2'; }
-    catch(e){ data = await gviz(''); S.mode='v1'; }
+    catch(e1){
+      try{ data = await gviz(''); S.mode='v1'; }
+      catch(e2){
+        // 試算表若設成「限制」，gviz 讀不到；改走 Apps Script（用通行碼）
+        if(!S.gasUrl) throw e2;
+        const rows = await gasPost({action:'get_all'});
+        if(!Array.isArray(rows)) throw new Error(rows && rows.error ? rows.error : 'gas');
+        data = {cols: HEADERS.slice(), rows}; S.mode='v2';
+      }
+    }
     S.jobs = (S.mode==='v2') ? data.rows.filter(r=>r.id).map(fromV2) : data.rows.filter(r=>r.filename||r.title).map(fromV1);
     S.jobs.forEach(j=>{ HEADERS.forEach(h=>{ if(j[h]==null) j[h]=''; }); });
     render();
@@ -742,6 +757,7 @@ function readForm(){
 
 /* ---------- 寫入（Apps Script v2） ---------- */
 async function gasPost(payload){
+  payload = Object.assign({key: S.key || ''}, payload);
   const r = await fetch(S.gasUrl, {method:'POST', body: JSON.stringify(payload), redirect:'follow'});
   let out = null;
   try{ out = await r.json(); }catch(e){}
@@ -756,6 +772,11 @@ async function save(){
   const payload = { action: isNew ? 'add' : 'update', who: S.me, job: j };
   let res = null;
   try{ res = await gasPost(payload); }catch(e){ console.warn('gas', e); }
+  if(res && res.ok===false){
+    btn.disabled = false; btn.textContent = '儲存';
+    toast(res.error==='bad key' ? '通行碼不對，點齒輪檢查一下' : '寫入失敗：'+res.error, true);
+    return;
+  }
   // 以試算表為準：重讀，確認有寫進去
   await new Promise(r=>setTimeout(r, 900));
   await load();
@@ -800,15 +821,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const sid = $('#s-sheet').value.trim(), g = $('#s-gas').value.trim();
     if(sid && (sid.length<10 || /\s/.test(sid))){ toast('試算表 ID 看起來不對', true); return; }
     if(g && !g.startsWith('https://script.google.com/')){ toast('Apps Script 網址要以 https://script.google.com/ 開頭', true); return; }
-    S.sheetId = sid; S.gasUrl = g; S.me = $('#s-me').value;
-    ls.set('sheet_id', sid); ls.set('gas_v2_url', g); ls.set('sjh_me', S.me);
+    S.sheetId = sid; S.gasUrl = g; S.me = $('#s-me').value; S.key = $('#s-key').value.trim();
+    ls.set('sheet_id', sid); ls.set('gas_v2_url', g); ls.set('sjh_me', S.me); ls.set('sjh_key', S.key);
     closeSettings(); load();
   });
   $('#settings').addEventListener('click', e=>{ if(e.target.id==='settings') closeSettings(); });
 
   load();
 });
-function openSettings(){ $('#s-sheet').value=S.sheetId; $('#s-gas').value=S.gasUrl; $('#s-me').value=S.me; $('#settings').classList.add('show'); $('#s-me').focus(); }
+function openSettings(){ $('#s-sheet').value=S.sheetId; $('#s-gas').value=S.gasUrl; $('#s-key').value=S.key; $('#s-me').value=S.me; $('#settings').classList.add('show'); $('#s-me').focus(); }
 function closeSettings(){ $('#settings').classList.remove('show'); }
 </script>
 </body>
