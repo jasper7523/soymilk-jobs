@@ -62,6 +62,11 @@ button{cursor:pointer}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .tools input[type=search]{flex:1 1 200px;min-height:40px;border:1px solid var(--line);border-radius:9px;padding:0 12px;background:var(--card)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:959px){
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;max-width:100%}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto}
+}
 .chip{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:12px;color:var(--muted)}
 .chip[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
 .banner{margin:10px 0 0;padding:10px 14px;border-radius:9px;font-size:12.5px;line-height:1.6;border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn-ink)}
@@ -338,7 +343,7 @@ footer{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);color:v
    豆漿接案表 v2 — 單檔前台
    資料：Google 試算表（讀：gviz；寫：Apps Script v2）
    ============================================================ */
-const VERSION = 'v2.0.0-preview';
+const VERSION = 'v2.0-preview';
 const TAB = 'v2';
 const HEADERS = ['id','title','status','source','tag','shoot_date','location','contact','pay_type','pay_amount','deliverable','due_deliver','due_publish','post_url','raw_message','note','pdf_url','created_at','updated_at','updated_by'];
 const STATUS = [
@@ -544,7 +549,7 @@ function render(){
     else if(j.status==='done') g.done.push(j);
     else g.declined.push(j);
   });
-  g.to_do.sort(bySortKey(dueOf,1));
+  g.to_do.sort((a,b)=>{ const ka=sortKey(dueOf(a)), kb=sortKey(dueOf(b)); if(ka&&kb) return ka.localeCompare(kb); if(ka) return -1; if(kb) return 1; return bySortKey(j=>j.shoot_date,1)(a,b); });
   g.shoot.sort(bySortKey(j=>j.shoot_date,1));
   g.inquiry.sort(bySortKey(j=>j.created_at,-1));
   g.done.sort(bySortKey(j=>j.updated_at||j.shoot_date||j.created_at,-1));
