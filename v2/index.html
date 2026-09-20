@@ -379,6 +379,9 @@ const S = {
   fTag: ls.get('sjh_f_tag') || '全部',
   openId: null,
   isNew: false,
+  statusTouched: false,   // 這次編輯有沒有自己點過狀態
+  origShoot: '',          // 開啟時的拍攝日期／發文連結，用來判斷是不是「這次才填的」
+  origPostUrl: '',
 };
 
 /* ---------- 一鍵設定連結 #s=&g=&me= ---------- */
@@ -668,6 +671,9 @@ function openNew(){
 function closePanel(){ document.body.classList.remove('panel-open'); S.openId=null; S.isNew=false; }
 
 function fillForm(j){
+  S.statusTouched = false;
+  S.origShoot = j.shoot_date || '';
+  S.origPostUrl = j.post_url || '';
   $('#f-id').value = j.id||'';
   $('#f-title').value = j.title||'';
   setStatus(j.status||'inquiry');
@@ -752,9 +758,14 @@ function readForm(){
   j.post_url = $('#f-post-url').value.trim();
   j.raw_message = $('#f-raw').value;
   j.note = $('#f-note').value.trim();
-  // 規則：貼了發文連結就結案；邀約中填了拍攝日期就進待拍
-  if(j.post_url && j.status!=='declined') j.status='done';
-  if(j.status==='inquiry' && j.shoot_date) j.status='scheduled';
+  // 自動跳狀態的兩條規則。只在「你沒有自己動狀態」而且「這次剛填上那個欄位」時才生效，
+  // 否則會把你手動改的蓋回去（2026/09/20 修：有拍攝日期的案子改不回邀約中）。
+  const 剛填了日期 = !S.origShoot && j.shoot_date;
+  const 剛貼了連結 = !S.origPostUrl && j.post_url;
+  if(!S.statusTouched){
+    if(剛貼了連結 && j.status!=='declined') j.status='done';
+    else if(剛填了日期 && j.status==='inquiry') j.status='scheduled';
+  }
   if(!j.title) j.title = (j.raw_message||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)[0]?.slice(0,30) || '';
   return j;
 }
@@ -806,9 +817,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('#btn-reload').addEventListener('click', ()=>load().then(()=>toast('已重新讀取')));
   $('#btn-settings').addEventListener('click', openSettings);
   $('#p-close').addEventListener('click', closePanel);
-  $('#p-decline').addEventListener('click', ()=>{ setStatus('declined'); if(canWrite()) save(); });
+  $('#p-decline').addEventListener('click', ()=>{ S.statusTouched = true; setStatus('declined'); if(canWrite()) save(); });
   $('#form').addEventListener('submit', e=>{ e.preventDefault(); save(); });
-  $('#steps').addEventListener('click', e=>{ const b=e.target.closest('button[data-st]'); if(b) setStatus(b.dataset.st); });
+  $('#steps').addEventListener('click', e=>{ const b=e.target.closest('button[data-st]'); if(b){ S.statusTouched = true; setStatus(b.dataset.st); } });
   $$('.seg').forEach(seg=>seg.addEventListener('click', e=>{ const b=e.target.closest('button[data-v]'); if(b) setSeg(seg.dataset.seg, b.dataset.v); }));
   $('#f-ttype').addEventListener('change', ()=>{ $('#f-time-wrap').hidden = $('#f-ttype').value!=='time'; });
   ['f-location','f-contact','f-post-url'].forEach(id=>$('#'+id).addEventListener('input', updateLinks));
