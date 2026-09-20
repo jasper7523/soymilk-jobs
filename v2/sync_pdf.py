@@ -368,6 +368,29 @@ def main():
         say('settings.json 沒有 gas_url，無法寫入。')
         sys.exit(1)
 
+    # 安全檢查：如果一份都對不上現有資料，很可能是比對鍵不一致（例如 pdf_url
+    # 存的是舊的 catbox 網址），硬寫下去會變成一整批重複列。先停下來問。
+    if not dry and s.get('gas_url'):
+        probe = post(s['gas_url'], {'action': 'upsert_many', 'key': s.get('key', ''),
+                                    'who': s.get('who', '簡'), 'jobs': jobs[:1]})
+        if not probe.get('ok'):
+            say('連線失敗：%s' % probe.get('error'))
+            if probe.get('error') == 'bad key':
+                say('（settings.json 的 key 跟 Apps Script 裡設的不一樣）')
+            elif probe.get('error') == 'unknown action':
+                say('（Apps Script 是舊版，請重貼 gas_v2.js）')
+            sys.exit(1)
+        if probe.get('added') and len(jobs) > 5:
+            say('')
+            say('⚠️ 第一筆「%s」在試算表裡找不到對應的列，被當成新案子加進去了。' % jobs[0]['title'][:30])
+            say('   如果你預期它應該已經在表裡，代表比對鍵對不上（例如 pdf_url 還是舊的 catbox 網址），')
+            say('   繼續跑會產生一整批重複。請先在 Apps Script 執行 repairAfterBadImport()。')
+            say('')
+            say('   要繼續請加 --force 重跑。')
+            if '--force' not in sys.argv:
+                sys.exit(1)
+        jobs = jobs[1:]
+
     say('')
     say('寫入試算表…')
     added = filled = untouched = 0

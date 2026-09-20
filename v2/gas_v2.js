@@ -313,6 +313,75 @@ function doMigrate_(){
   return rows.length;
 }
 
+/* ============================================================
+   修復：2026/09/20 PDF 匯入對錯，多出一批重複列
+
+   狀況：早期的搬家把 catbox 網址存進 pdf_url，但 sync_pdf.py 是用
+        「PDF 檔名」比對，兩邊對不上，89 份報名表被當成新案子加進去。
+
+   這個函式做兩件事，跑一次就好：
+     1. 刪掉那批誤加的列（id 是 J2026-0920-、pdf_url 是檔名而非網址）
+     2. 把舊列的 pdf_url 從 catbox 網址換成 PDF 檔名
+        （之後匯入才對得上；順便把公開圖床網址清出試算表）
+   你手打的內容一律不動。跑之前建議先 檔案→版本記錄 看一眼。
+   ============================================================ */
+function repairAfterBadImport(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(TAB);
+  if(!sh) throw new Error('找不到 v2 分頁');
+
+  var last = sh.getLastRow();
+  if(last < 2) throw new Error('v2 分頁是空的');
+  var idCol = HEADERS.indexOf('id');
+  var pCol  = HEADERS.indexOf('pdf_url');
+  var data  = sh.getRange(2, 1, last-1, HEADERS.length).getValues();
+
+  // ── 1. 刪掉誤加的列（由下往上刪，列號才不會跑掉）
+  var killed = 0;
+  for(var i = data.length - 1; i >= 0; i--){
+    var id = String(data[i][idCol]);
+    var pu = String(data[i][pCol]).trim();
+    if(id.indexOf('J2026-0920-') === 0 && pu && pu.indexOf('http') !== 0){
+      sh.deleteRow(i + 2);
+      killed++;
+    }
+  }
+  Logger.log('刪掉誤加的列：' + killed + ' 筆');
+
+  // ── 2. catbox 網址 → PDF 檔名
+  var src = ss.getSheets()[0];
+  if(src.getName() === TAB) throw new Error('找不到舊分頁');
+  var old = src.getDataRange().getValues();
+  var oh = old[0].map(String);
+  var fi = oh.indexOf('filename'), ui = oh.indexOf('pdf_url');
+  var map = {};
+  if(fi >= 0 && ui >= 0){
+    for(var r = 1; r < old.length; r++){
+      var url = String(old[r][ui]).trim();
+      var fn  = String(old[r][fi]).trim();
+      if(url && fn && /\.pdf$/i.test(fn)) map[url] = pdfKey_(fn);
+    }
+  }
+
+  last = sh.getLastRow();
+  var fixed = 0, unmatched = 0;
+  if(last >= 2){
+    var col = sh.getRange(2, pCol + 1, last-1, 1);
+    var vals = col.getValues();
+    for(var k = 0; k < vals.length; k++){
+      var v = String(vals[k][0]).trim();
+      if(v.indexOf('http') !== 0) continue;
+      if(map[v]){ vals[k][0] = map[v]; fixed++; }
+      else { unmatched++; }
+    }
+    col.setNumberFormat('@');
+    col.setValues(vals);
+  }
+  Logger.log('pdf_url 由網址換成檔名：' + fixed + ' 筆；對不到舊資料的：' + unmatched + ' 筆');
+  Logger.log('現在 v2 共 ' + (sh.getLastRow() - 1) + ' 筆。接著可以重跑 sync_pdf.py。');
+  return {deleted: killed, fixed: fixed, unmatched: unmatched, total: sh.getLastRow() - 1};
+}
+
 // PDF 的識別碼：去掉副檔名和「 (2)」「 (3)」。sync_pdf.py 用同一套規則。
 function pdfKey_(filename){
   return String(filename || '').replace(/\.pdf$/i, '').replace(/\s*\(\d+\)\s*$/, '').trim();
