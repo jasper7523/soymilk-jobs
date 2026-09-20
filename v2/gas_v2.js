@@ -207,9 +207,39 @@ function doPost(e){
 
 /* ============================================================
    搬家：第一個分頁（舊版 filename/title/tag/status/…）→ v2 分頁
-   在編輯器選這個函式按執行。可重跑；會先清掉 v2 分頁的資料列。
+
+   ★ migrateFromV1() 只在 v2 是空的時候才會動手。
+     v2 已經有資料 → 直接擋下來，不會蓋掉你們後來改的東西。
+     真的要重搬，執行 migrateFromV1_REDO()，它會先把現在的 v2 另存成
+     「v2_備份_日期時間」分頁，再重搬。備份分頁不會被任何程式碰到。
+
+   ★ 我（Claude）之後更新 gas_v2.js 時，你只要「重貼程式碼 + 重新部署」，
+     不要再跑搬家。搬家一輩子只需要成功一次。
    ============================================================ */
 function migrateFromV1(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var exist = ss.getSheetByName(TAB);
+  if(exist && exist.getLastRow() > 1){
+    throw new Error(
+      'v2 分頁已經有 ' + (exist.getLastRow() - 1) + ' 筆資料，搬家取消（避免蓋掉你們後來改的內容）。' +
+      '真的要重搬請改執行 migrateFromV1_REDO()，它會先自動備份。');
+  }
+  return doMigrate_();
+}
+
+/** 重搬：先備份現有 v2，再整個重來。只有真的要放棄現有 v2 才用。 */
+function migrateFromV1_REDO(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var exist = ss.getSheetByName(TAB);
+  if(exist && exist.getLastRow() > 1){
+    var name = 'v2_備份_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmm');
+    exist.copyTo(ss).setName(name);
+    Logger.log('已備份現有 v2 到分頁「' + name + '」');
+  }
+  return doMigrate_();
+}
+
+function doMigrate_(){
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var src = ss.getSheets()[0];
   if(src.getName() === TAB) throw new Error('第一個分頁就是 v2，找不到舊資料');
@@ -279,6 +309,7 @@ function migrateFromV1(){
     sh.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
   }
   Logger.log('搬完 ' + rows.length + ' 筆（舊分頁 ' + (data.length-1) + ' 列，重複的報名表已合併）');
+  Logger.log('提醒：以後更新程式碼只要重貼＋重新部署，不用再跑搬家。');
   return rows.length;
 }
 
