@@ -310,8 +310,45 @@ def post(gas_url, payload):
         return json.loads(r.read().decode('utf-8'))
 
 
+def menu():
+    """雙擊 .bat 進來的互動選單"""
+    say('')
+    say('　　豆漿接案表 — 報名表 PDF 匯入')
+    say('　　' + '─' * 34)
+    say('')
+    say('　　1　試跑，不寫入（會開啟預覽檔給你看）')
+    say('　　2　正式匯入')
+    say('　　0　離開')
+    say('')
+    while True:
+        try:
+            c = input('　　請輸入 1 / 2 / 0 後按 Enter：').strip()
+        except (EOFError, KeyboardInterrupt):
+            return
+        if c == '0':
+            return
+        if c == '1':
+            say('')
+            run(dry=True)
+            try:
+                os.startfile(PREVIEW)
+            except Exception:
+                say('（預覽檔在：%s）' % PREVIEW)
+            return
+        if c == '2':
+            say('')
+            run(dry=False)
+            return
+        say('　　請輸入 1、2 或 0。')
+
+
 def main():
-    dry = '--dry' in sys.argv
+    if '--menu' in sys.argv:
+        return menu()
+    return run(dry='--dry' in sys.argv)
+
+
+def run(dry=False):
     s = load_settings()
     folder = s['pdf_dir']
     if not os.path.isdir(folder):
@@ -361,7 +398,7 @@ def main():
 
     if dry:
         say('')
-        say('這是 --dry 試跑，沒有寫進試算表。看過預覽檔沒問題，再跑一次不加 --dry。')
+        say('這是試跑，沒有寫進試算表。看過預覽檔沒問題，再跑一次選「2 正式匯入」。')
         return
 
     if not s.get('gas_url'):
