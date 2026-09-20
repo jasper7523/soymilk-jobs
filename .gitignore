@@ -1,3 +1,7 @@
 settings.json
 setup-link-generator.html
 __pycache__/
+
+# v2：這兩個含通行碼／個資，絕對不要進 git
+v2/settings.json
+v2/_preview.txt

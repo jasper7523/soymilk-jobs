@@ -690,7 +690,11 @@ function fillForm(j){
   $('#f-raw').value = j.raw_message||'';
   $('#f-note').value = j.note||'';
   $('#f-raw-help').textContent = S.isNew ? '這是唯一一定要貼的。下面欄位都可以之後再補。' : '';
-  $('#f-pdf').innerHTML = j.pdf_url ? `<a href="${esc(j.pdf_url)}" target="_blank" rel="noopener">舊版附件 PDF ↗</a>` : '';
+  // pdf_url 可能是網址（舊資料）或本機檔名（v2 匯入）
+  $('#f-pdf').innerHTML = !j.pdf_url ? ''
+    : (/^https?:\/\//i.test(j.pdf_url)
+        ? `<a href="${esc(j.pdf_url)}" target="_blank" rel="noopener">附件 PDF ↗</a>`
+        : `<span style="color:var(--muted)">報名表檔案：${esc(j.pdf_url)}.pdf（在電腦的接案資料夾裡）</span>`);
   const meta = [];
   if(j.created_at) meta.push('收到 '+j.created_at);
   if(j.updated_at) meta.push('更新 '+j.updated_at+(j.updated_by?' · '+j.updated_by:''));

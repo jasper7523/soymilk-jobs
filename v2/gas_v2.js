@@ -2,18 +2,32 @@
  * 豆漿接案表 v2 — Google Apps Script
  * 貼進試算表的「延伸功能 → Apps Script」，部署成網頁應用程式（執行身分：我；存取：任何人）。
  *
- * 四個動作：
- *   GET  ?action=get_all            讀 v2 分頁全部（前台平常用 gviz 讀，這條是備用）
- *   POST {action:'add',    who, job} 新增一筆，回 {ok, id}
- *   POST {action:'update', who, job} 依 id 改一筆，回 {ok, id}
- *   在編輯器直接執行 migrateFromV1()  把第一個分頁（舊版）搬成「v2」分頁，跑一次就好，可重跑（會先清掉 v2 再搬）
+ * 動作：
+ *   GET  ?action=get_all              讀 v2 分頁全部（前台平常用 gviz 讀，這條是備用；有設通行碼時關閉）
+ *   POST {action:'add',      who, job}  新增一筆，回 {ok, id}
+ *   POST {action:'update',   who, job}  依 id 改一筆，回 {ok, id}
+ *   POST {action:'add_many', who, jobs} 批次新增（sync_pdf.py 匯入用），依 pdf_url 去重，回 {ok, added, skipped}
+ *   POST {action:'get_all'}             讀全部
+ *   在編輯器直接執行 migrateFromV1()    把第一個分頁（舊版）搬成「v2」分頁，跑一次就好，可重跑（會先清掉 v2 再搬）
  *
  * 部署一次就不再動。之後改版只改前台 index.html。
  */
 
-// ★ 通行碼：在引號裡打一串你自己想的密碼（英數字都可以，不要有空格）。
-//   設定連結裡要帶同一串（&k=…）。留空就是不檢查，任何拿到部署網址的人都能讀寫。
+// ★ 通行碼
+//   這個檔案會上 GitHub（公開），所以這裡永遠留空，不要把密碼打在這一行。
+//   密碼只打在兩個地方，兩個都不會外流：
+//     (1) Apps Script 編輯器裡你貼上去的那份，把下面的 '' 中間填上；或
+//     (2) 專案設定 → 指令碼屬性 → 新增屬性，名稱 KEY，值填密碼（更好，改密碼不用重新部署）
+//   留空且沒設指令碼屬性 = 不檢查，任何拿到部署網址的人都能讀寫。
 var KEY = '';
+
+function key_(){
+  try{
+    var p = PropertiesService.getScriptProperties().getProperty('KEY');
+    if(p) return String(p);
+  }catch(e){}
+  return KEY;
+}
 
 var TAB = 'v2';
 var TZ = 'Asia/Taipei';
@@ -66,7 +80,7 @@ function newId_(sh){
 
 function doGet(e){
   // 有設通行碼就不開放 GET 讀取；讀取請走 POST get_all
-  if(KEY) return out_({ok:false, error:'use POST'});
+  if(key_()) return out_({ok:false, error:'use POST'});
   var sh = sheet_();
   return out_(readAll_(sh));
 }
@@ -77,7 +91,8 @@ function doPost(e){
   try{
     var body = JSON.parse(e.postData.contents || '{}');
     var action = body.action;
-    if(KEY && String(body.key || '') !== KEY) return out_({ok:false, error:'bad key'});
+    var K = key_();
+    if(K && String(body.key || '') !== K) return out_({ok:false, error:'bad key'});
     var who = String(body.who || '');
     var job = body.job || {};
     var sh = sheet_();
@@ -112,6 +127,75 @@ function doPost(e){
         }
       }
       return out_({ok:false, error:'not found'});
+    }
+
+    // 批次匯入（sync_pdf.py 用）。依 pdf_url（＝PDF 檔名）比對：
+    //   對得上 → 只補「原本是空的」欄位，絕不蓋掉你們手打過的東西
+    //   對不上 → 新增一筆
+    if(action === 'add_many' || action === 'upsert_many'){
+      var jobs = body.jobs || [];
+      if(!jobs.length) return out_({ok:true, added:0, filled:0, untouched:0});
+
+      var last0 = sh.getLastRow();
+      var all = (last0 >= 2) ? sh.getRange(2, 1, last0-1, HEADERS.length).getValues() : [];
+      var pcol = HEADERS.indexOf('pdf_url');
+      var index = {};
+      for(var x = 0; x < all.length; x++){
+        var key = String(all[x][pcol]).trim();
+        if(key) index[key] = x;                  // x = 相對列號（0 起算）
+      }
+
+      var prefix = 'J' + today_().slice(0,4) + '-' + today_().slice(4) + '-';
+      var base = 0;
+      for(var y = 0; y < all.length; y++){
+        var s = String(all[y][0]);
+        if(s.indexOf(prefix) === 0){ var k = parseInt(s.slice(prefix.length), 10); if(k > base) base = k; }
+      }
+
+      var rows = [], added = 0, filled = 0, untouched = 0;
+      var KEEP = ['id','status','created_at','updated_at','updated_by'];   // 這幾欄匯入永遠不碰
+      for(var i = 0; i < jobs.length; i++){
+        var job = jobs[i];
+        var pk = String(job.pdf_url || '').trim();
+
+        if(pk && index.hasOwnProperty(pk)){
+          var r = index[pk];
+          var cur = all[r], changed = false;
+          for(var c = 0; c < HEADERS.length; c++){
+            var h = HEADERS[c];
+            if(KEEP.indexOf(h) !== -1) continue;
+            var nv = (job[h] == null) ? '' : String(job[h]);
+            if(nv && !String(cur[c]).trim()){ cur[c] = nv; changed = true; }
+          }
+          if(changed){
+            cur[HEADERS.indexOf('updated_at')] = now_();
+            cur[HEADERS.indexOf('updated_by')] = (who || 'PDF匯入');
+            formatText_(sh, r + 2, 1);
+            sh.getRange(r + 2, 1, 1, HEADERS.length).setValues([cur]);
+            filled++;
+          } else {
+            untouched++;
+          }
+          continue;
+        }
+
+        base++;
+        job.id = prefix + ('0' + base).slice(-2);
+        job.created_at = job.created_at || now_();
+        job.updated_at = now_();
+        job.updated_by = who || 'PDF匯入';
+        if(!job.status) job.status = 'inquiry';
+        if(!job.source) job.source = '報名';
+        if(pk) index[pk] = all.length + rows.length;
+        rows.push(HEADERS.map(function(h){ return job[h] == null ? '' : String(job[h]); }));
+        added++;
+      }
+      if(rows.length){
+        var start = sh.getLastRow() + 1;
+        formatText_(sh, start, rows.length);
+        sh.getRange(start, 1, rows.length, HEADERS.length).setValues(rows);
+      }
+      return out_({ok:true, added:added, filled:filled, untouched:untouched});
     }
 
     if(action === 'get_all'){ return out_(readAll_(sh)); }
@@ -162,10 +246,11 @@ function migrateFromV1(){
     var leftover = comp.replace(/[\d,\s$元NT.]/g,'').replace(/互惠|有酬|邀約|｜|\|/g,'');
     var note2 = (comp && (leftover || (!num && !mutual))) ? '報酬（原文）：' + comp : '';
 
-    var keyTitle = (title || filename).replace(/\s*\(\d+\)\s*$/, '').replace(/\d$/, '').trim();
+    // 同一份報名表被存過好幾次（「… (2).pdf」「… (3).pdf」）只留一筆
+    var pkey = isPdf ? pdfKey_(filename) : '';
     if(isPdf && status === 'inquiry'){
-      if(seen[keyTitle]){ continue; }   // 重複的報名表，跳過
-      seen[keyTitle] = true;
+      if(seen[pkey]){ continue; }
+      seen[pkey] = true;
     }
 
     seq++;
@@ -176,7 +261,11 @@ function migrateFromV1(){
       id, title || filename, status, isPdf ? '報名' : '邀約',
       (get('tag') && get('tag') !== '一般') ? get('tag') : '',
       shoot, extractAddress_(note), get('contact'), payType, num ? num[0] : '',
-      get('platform'), '', '', '', note, note2, get('pdf_url'),
+      get('platform'), '', '', '', note, note2,
+      // pdf_url 改存「本機檔名（去掉 .pdf 和 (2)(3)）」，不再存 catbox 公開網址：
+      // (1) 之後 sync_pdf.py 靠這個認得出同一份，會把 PDF 內容補進這一列
+      // (2) 個資不再指向公開圖床
+      pkey,
       created, now_(), '搬家'
     ]);
   }
@@ -191,6 +280,11 @@ function migrateFromV1(){
   }
   Logger.log('搬完 ' + rows.length + ' 筆（舊分頁 ' + (data.length-1) + ' 列，重複的報名表已合併）');
   return rows.length;
+}
+
+// PDF 的識別碼：去掉副檔名和「 (2)」「 (3)」。sync_pdf.py 用同一套規則。
+function pdfKey_(filename){
+  return String(filename || '').replace(/\.pdf$/i, '').replace(/\s*\(\d+\)\s*$/, '').trim();
 }
 
 function normDate_(v){
