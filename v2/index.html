@@ -379,6 +379,7 @@ const S = {
   fTag: ls.get('sjh_f_tag') || '全部',
   openId: null,
   isNew: false,
+  authBad: false,         // 通行碼對不上
   statusTouched: false,   // 這次編輯有沒有自己點過狀態
   origShoot: '',          // 開啟時的拍攝日期／發文連結，用來判斷是不是「這次才填的」
   origPostUrl: '',
@@ -487,11 +488,22 @@ async function load(){
     S.jobs = (S.mode==='v2') ? data.rows.filter(r=>r.id).map(fromV2) : data.rows.filter(r=>r.filename||r.title).map(fromV1);
     S.jobs.forEach(j=>{ HEADERS.forEach(h=>{ if(j[h]==null) j[h]=''; }); });
     render();
+    checkAuth();          // 背景確認通行碼，不要等到他打完一整筆才發現存不進去
   }catch(e){
     console.error(e);
     $('#board').innerHTML='';
     setBanner('讀不到試算表：'+esc(e.message)+'。確認試算表 ID，或試算表有沒有開「知道連結的人可檢視」。','stop');
   }
+}
+
+/* 開頁時先探一下通行碼對不對。用空的 upsert_many，不會動到任何資料。 */
+async function checkAuth(){
+  S.authBad = false;
+  if(S.mode!=='v2' || !S.gasUrl) return;
+  try{
+    const res = await gasPost({action:'upsert_many', jobs:[]});
+    if(res && res.ok===false && res.error==='bad key'){ S.authBad = true; render(); }
+  }catch(e){ /* 網路不順就算了，存檔時還會再擋一次 */ }
 }
 
 function fromV2(r){
@@ -577,7 +589,10 @@ function render(){
   all.forEach(j=>{ if(j.status==='to_deliver'||j.status==='to_publish') cAll.to_do++; else if(j.status==='scheduled') cAll.shoot++; else if(j.status==='inquiry') cAll.inquiry++; });
   $('#counts').innerHTML = `<span class="c-stop">要交 ${cAll.to_do}</span><span class="c-ok">要拍 ${cAll.shoot}</span><span>邀約中 ${cAll.inquiry}</span><span style="background:transparent;color:var(--muted);font-weight:400">共 ${all.length} 案</span>`;
 
-  if(S.mode==='v1'){
+  if(S.authBad){
+    setBanner(`<b>通行碼不對，現在存不進去。</b>資料還在，只是這台裝置存的通行碼掉了或沒設過（換瀏覽器、清過瀏覽資料都會這樣）。<br>
+      點右上角齒輪，在「通行碼」欄重新輸入一次就好；或請管理員把設定連結再傳一次。`, 'stop');
+  } else if(S.mode==='v1'){
     setBanner(`<b>唯讀預覽。</b>資料是從舊版試算表即時換算來的（狀態、報酬、地點都是猜的），還沒搬家，所以不能存。要能存：跑一次搬家、部署 Apps Script v2、再點設定連結。`, '');
   } else if(!S.gasUrl){
     setBanner(`<b>唯讀。</b>還沒設定 Apps Script v2 網址，點齒輪填，或用管理員給的設定連結。`, '');
@@ -789,7 +804,12 @@ async function save(){
   try{ res = await gasPost(payload); }catch(e){ console.warn('gas', e); }
   if(res && res.ok===false){
     btn.disabled = false; btn.textContent = '儲存';
-    toast(res.error==='bad key' ? '通行碼不對，點齒輪檢查一下' : '寫入失敗：'+res.error, true);
+    if(res.error==='bad key'){
+      S.authBad = true; render();
+      toast('通行碼不對，存不進去。你打的內容還在，點右上角齒輪重新輸入通行碼後再按儲存。', true);
+    } else {
+      toast('寫入失敗：'+res.error, true);
+    }
     return;
   }
   // 以試算表為準：重讀，確認有寫進去
